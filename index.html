@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Running Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1115;
+      --panel: #181c23;
+      --text: #e8ecf1;
+      --muted: #a8b3c4;
+      --accent: #4cc2ff;
+      --accent-2: #78f5c5;
+      --border: #262b35;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: min(1100px, 100%);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+    }
+
+    p.lead {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: linear-gradient(145deg, rgba(76, 194, 255, 0.08), rgba(120, 245, 197, 0.06));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.9rem;
+      color: var(--muted);
+      gap: 6px;
+    }
+
+    input, button, select {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #11141a;
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    input:focus, button:focus, select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    button {
+      cursor: pointer;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #0b0d11;
+      font-weight: 700;
+      border: none;
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(76, 194, 255, 0.35);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      min-height: 280px;
+    }
+
+    .log-table {
+      margin-top: 14px;
+      overflow-x: auto;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Running Planner</h1>
+      <p class="lead">Map your training plan, log runs, and watch progress in real-time.</p>
+    </header>
+
+    <section>
+      <div class="section-header">
+        <h2>Training Plan</h2>
+        <span class="stat-label">Upcoming key sessions</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Distance</th>
+            <th>Target Pace</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2024-09-02</td>
+            <td>8 km</td>
+            <td>5:15 /km</td>
+            <td>Steady tempo</td>
+          </tr>
+          <tr>
+            <td>2024-09-05</td>
+            <td>12 km</td>
+            <td>5:30 /km</td>
+            <td>Mid-week aerobic</td>
+          </tr>
+          <tr>
+            <td>2024-09-08</td>
+            <td>16 km</td>
+            <td>5:45 /km</td>
+            <td>Long run with last 3 km moderate</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <h2>Run Summary</h2>
+        <span class="stat-label">Stats update as you log runs</span>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <div class="stat-label">Total Distance</div>
+          <div class="stat-value" id="total-distance">0 km</div>
+        </div>
+        <div class="card">
+          <div class="stat-label">Average Weekly Distance</div>
+          <div class="stat-value" id="avg-weekly">0 km</div>
+        </div>
+        <div class="card">
+          <div class="stat-label">Fastest Pace</div>
+          <div class="stat-value" id="fastest-pace">–</div>
+        </div>
+        <div class="card">
+          <div class="stat-label">Longest Run</div>
+          <div class="stat-value" id="longest-run">–</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <h2>Progress</h2>
+        <span class="stat-label">Pace and distance over time</span>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="progressChart"></canvas>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <h2>Log a Run</h2>
+        <span class="stat-label">Add completed runs to keep stats fresh</span>
+      </div>
+      <form id="run-form">
+        <label>
+          Date
+          <input type="date" id="run-date" required>
+        </label>
+        <label>
+          Distance (km)
+          <input type="number" step="0.1" min="0" id="run-distance" required>
+        </label>
+        <label>
+          Duration (hh:mm:ss)
+          <input type="text" pattern="^\\d{1,2}:\\d{2}:\\d{2}$" placeholder="00:45:00" id="run-duration" required>
+        </label>
+        <label>
+          Effort (1–10)
+          <input type="number" min="1" max="10" id="run-effort" required>
+        </label>
+        <button type="submit">Add Run</button>
+      </form>
+      <div class="log-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Distance</th>
+              <th>Duration</th>
+              <th>Pace</th>
+              <th>Effort</th>
+            </tr>
+          </thead>
+          <tbody id="run-log"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const runForm = document.getElementById('run-form');
+    const runLogEl = document.getElementById('run-log');
+    const totalDistanceEl = document.getElementById('total-distance');
+    const avgWeeklyEl = document.getElementById('avg-weekly');
+    const fastestPaceEl = document.getElementById('fastest-pace');
+    const longestRunEl = document.getElementById('longest-run');
+
+    const sampleRuns = [
+      { date: '2024-08-20', distance: 6, duration: '00:33:00', effort: 6 },
+      { date: '2024-08-22', distance: 8, duration: '00:42:30', effort: 7 },
+      { date: '2024-08-25', distance: 12, duration: '01:06:45', effort: 7 },
+      { date: '2024-08-28', distance: 10, duration: '00:52:15', effort: 6 },
+      { date: '2024-08-30', distance: 14, duration: '01:18:30', effort: 8 }
+    ];
+
+    let runs = sampleRuns.map(addPaceToRun);
+    let chart;
+
+    function parseDurationToSeconds(value) {
+      const [hh, mm, ss] = value.split(':').map(Number);
+      return (hh * 3600) + (mm * 60) + ss;
+    }
+
+    function formatPace(secondsPerKm) {
+      if (!isFinite(secondsPerKm) || secondsPerKm <= 0) return '–';
+      const minutes = Math.floor(secondsPerKm / 60);
+      const seconds = Math.round(secondsPerKm % 60).toString().padStart(2, '0');
+      return `${minutes}:${seconds} /km`;
+    }
+
+    function addPaceToRun(run) {
+      const seconds = parseDurationToSeconds(run.duration);
+      const paceSeconds = seconds / run.distance;
+      return { ...run, paceSeconds };
+    }
+
+    function renderRuns() {
+      runLogEl.innerHTML = '';
+      const sorted = [...runs].sort((a, b) => new Date(a.date) - new Date(b.date));
+      sorted.forEach(run => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${run.date}</td>
+          <td>${run.distance.toFixed(1)} km</td>
+          <td>${run.duration}</td>
+          <td>${formatPace(run.paceSeconds)}</td>
+          <td>${run.effort}</td>
+        `;
+        runLogEl.appendChild(row);
+      });
+    }
+
+    function updateStats() {
+      if (!runs.length) return;
+      const totalDistance = runs.reduce((sum, r) => sum + r.distance, 0);
+      const sorted = [...runs].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const firstDate = new Date(sorted[0].date);
+      const lastDate = new Date(sorted[sorted.length - 1].date);
+      const diffWeeks = Math.max(1, (lastDate - firstDate) / (1000 * 60 * 60 * 24 * 7));
+      const avgWeekly = totalDistance / diffWeeks;
+      const fastest = Math.min(...runs.map(r => r.paceSeconds));
+      const longest = Math.max(...runs.map(r => r.distance));
+
+      totalDistanceEl.textContent = `${totalDistance.toFixed(1)} km`;
+      avgWeeklyEl.textContent = `${avgWeekly.toFixed(1)} km`;
+      fastestPaceEl.textContent = formatPace(fastest);
+      longestRunEl.textContent = `${longest.toFixed(1)} km`;
+    }
+
+    function buildChart() {
+      const ctx = document.getElementById('progressChart');
+      const sorted = [...runs].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const labels = sorted.map(r => r.date);
+      const paceData = sorted.map(r => Number((r.paceSeconds / 60).toFixed(2)));
+      const distanceData = sorted.map(r => Number(r.distance.toFixed(2)));
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Pace (min/km)',
+              data: paceData,
+              borderColor: varColor('--accent'),
+              backgroundColor: 'rgba(76, 194, 255, 0.15)',
+              tension: 0.3,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Distance (km)',
+              data: distanceData,
+              borderColor: varColor('--accent-2'),
+              backgroundColor: 'rgba(120, 245, 197, 0.15)',
+              tension: 0.3,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#dbe3ef' } },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  if (context.dataset.label.includes('Pace')) {
+                    return `${context.dataset.label}: ${formatPace(Number(context.raw) * 60)}`;
+                  }
+                  return `${context.dataset.label}: ${Number(context.raw).toFixed(1)} km`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#dbe3ef' },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+              type: 'linear',
+              position: 'left',
+              ticks: { color: '#dbe3ef' },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y1: {
+              type: 'linear',
+              position: 'right',
+              ticks: { color: '#dbe3ef' },
+              grid: { drawOnChartArea: false },
+              suggestedMin: 0
+            }
+          }
+        }
+      });
+    }
+
+    function varColor(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    runForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const date = document.getElementById('run-date').value;
+      const distance = parseFloat(document.getElementById('run-distance').value);
+      const duration = document.getElementById('run-duration').value;
+      const effort = parseInt(document.getElementById('run-effort').value, 10);
+
+      if (!date || !distance || !duration) return;
+      const newRun = addPaceToRun({ date, distance, duration, effort });
+      runs.push(newRun);
+      runForm.reset();
+      refreshUI();
+    });
+
+    function refreshUI() {
+      renderRuns();
+      updateStats();
+      buildChart();
+    }
+
+    // Initialize with sample data
+    refreshUI();
+  </script>
+</body>
+</html>
