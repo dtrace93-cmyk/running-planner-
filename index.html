@@ -193,29 +193,14 @@
         <thead>
           <tr>
             <th>Date</th>
-            <th>Distance</th>
-            <th>Target Pace</th>
+            <th>Distance (mi)</th>
+            <th>Target Pace (min/mi)</th>
             <th>Notes</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>2024-09-02</td>
-            <td>8 km</td>
-            <td>5:15 /km</td>
-            <td>Steady tempo</td>
-          </tr>
-          <tr>
-            <td>2024-09-05</td>
-            <td>12 km</td>
-            <td>5:30 /km</td>
-            <td>Mid-week aerobic</td>
-          </tr>
-          <tr>
-            <td>2024-09-08</td>
-            <td>16 km</td>
-            <td>5:45 /km</td>
-            <td>Long run with last 3 km moderate</td>
+            <td colspan="4" style="text-align:center; color: var(--muted);">Add your training sessions here</td>
           </tr>
         </tbody>
       </table>
@@ -229,11 +214,11 @@
       <div class="grid">
         <div class="card">
           <div class="stat-label">Total Distance</div>
-          <div class="stat-value" id="total-distance">0 km</div>
+          <div class="stat-value" id="total-distance">0 mi</div>
         </div>
         <div class="card">
           <div class="stat-label">Average Weekly Distance</div>
-          <div class="stat-value" id="avg-weekly">0 km</div>
+          <div class="stat-value" id="avg-weekly">0 mi</div>
         </div>
         <div class="card">
           <div class="stat-label">Fastest Pace</div>
@@ -267,12 +252,12 @@
           <input type="date" id="run-date" required>
         </label>
         <label>
-          Distance (km)
+          Distance (miles)
           <input type="number" step="0.1" min="0" id="run-distance" required>
         </label>
         <label>
           Duration (hh:mm:ss)
-          <input type="text" pattern="^\\d{1,2}:\\d{2}:\\d{2}$" placeholder="00:45:00" id="run-duration" required>
+          <input type="time" step="1" placeholder="00:45:00" id="run-duration" required>
         </label>
         <label>
           Effort (1–10)
@@ -285,9 +270,9 @@
           <thead>
             <tr>
               <th>Date</th>
-              <th>Distance</th>
+              <th>Distance (mi)</th>
               <th>Duration</th>
-              <th>Pace</th>
+              <th>Pace (min/mi)</th>
               <th>Effort</th>
             </tr>
           </thead>
@@ -305,43 +290,50 @@
     const fastestPaceEl = document.getElementById('fastest-pace');
     const longestRunEl = document.getElementById('longest-run');
 
-    const sampleRuns = [
-      { date: '2024-08-20', distance: 6, duration: '00:33:00', effort: 6 },
-      { date: '2024-08-22', distance: 8, duration: '00:42:30', effort: 7 },
-      { date: '2024-08-25', distance: 12, duration: '01:06:45', effort: 7 },
-      { date: '2024-08-28', distance: 10, duration: '00:52:15', effort: 6 },
-      { date: '2024-08-30', distance: 14, duration: '01:18:30', effort: 8 }
-    ];
-
-    let runs = sampleRuns.map(addPaceToRun);
+    let runs = [];
     let chart;
 
     function parseDurationToSeconds(value) {
-      const [hh, mm, ss] = value.split(':').map(Number);
-      return (hh * 3600) + (mm * 60) + ss;
+      if (!value) return 0;
+      const parts = value.split(':').map(Number);
+      if (parts.length === 2) {
+        const [hh, mm] = parts;
+        return (hh * 3600) + (mm * 60);
+      }
+      if (parts.length === 3) {
+        const [hh, mm, ss] = parts;
+        return (hh * 3600) + (mm * 60) + ss;
+      }
+      return 0;
     }
 
-    function formatPace(secondsPerKm) {
-      if (!isFinite(secondsPerKm) || secondsPerKm <= 0) return '–';
-      const minutes = Math.floor(secondsPerKm / 60);
-      const seconds = Math.round(secondsPerKm % 60).toString().padStart(2, '0');
-      return `${minutes}:${seconds} /km`;
+    function formatPace(secondsPerMile) {
+      if (!isFinite(secondsPerMile) || secondsPerMile <= 0) return '–';
+      const minutes = Math.floor(secondsPerMile / 60);
+      const seconds = Math.round(secondsPerMile % 60).toString().padStart(2, '0');
+      return `${minutes}:${seconds} /mi`;
     }
 
     function addPaceToRun(run) {
       const seconds = parseDurationToSeconds(run.duration);
-      const paceSeconds = seconds / run.distance;
+      const paceSeconds = seconds && run.distance ? seconds / run.distance : 0;
       return { ...run, paceSeconds };
     }
 
     function renderRuns() {
       runLogEl.innerHTML = '';
+      if (!runs.length) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="5" style="text-align:center; color: var(--muted);">No runs logged yet</td>`;
+        runLogEl.appendChild(row);
+        return;
+      }
       const sorted = [...runs].sort((a, b) => new Date(a.date) - new Date(b.date));
       sorted.forEach(run => {
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${run.date}</td>
-          <td>${run.distance.toFixed(1)} km</td>
+          <td>${run.distance.toFixed(1)} mi</td>
           <td>${run.duration}</td>
           <td>${formatPace(run.paceSeconds)}</td>
           <td>${run.effort}</td>
@@ -351,7 +343,13 @@
     }
 
     function updateStats() {
-      if (!runs.length) return;
+      if (!runs.length) {
+        totalDistanceEl.textContent = '0 mi';
+        avgWeeklyEl.textContent = '0 mi';
+        fastestPaceEl.textContent = '–';
+        longestRunEl.textContent = '–';
+        return;
+      }
       const totalDistance = runs.reduce((sum, r) => sum + r.distance, 0);
       const sorted = [...runs].sort((a, b) => new Date(a.date) - new Date(b.date));
       const firstDate = new Date(sorted[0].date);
@@ -361,10 +359,10 @@
       const fastest = Math.min(...runs.map(r => r.paceSeconds));
       const longest = Math.max(...runs.map(r => r.distance));
 
-      totalDistanceEl.textContent = `${totalDistance.toFixed(1)} km`;
-      avgWeeklyEl.textContent = `${avgWeekly.toFixed(1)} km`;
+      totalDistanceEl.textContent = `${totalDistance.toFixed(1)} mi`;
+      avgWeeklyEl.textContent = `${avgWeekly.toFixed(1)} mi`;
       fastestPaceEl.textContent = formatPace(fastest);
-      longestRunEl.textContent = `${longest.toFixed(1)} km`;
+      longestRunEl.textContent = `${longest.toFixed(1)} mi`;
     }
 
     function buildChart() {
@@ -375,13 +373,15 @@
       const distanceData = sorted.map(r => Number(r.distance.toFixed(2)));
 
       if (chart) chart.destroy();
+      if (!runs.length) return;
+
       chart = new Chart(ctx, {
         type: 'line',
         data: {
           labels,
           datasets: [
             {
-              label: 'Pace (min/km)',
+              label: 'Pace (min/mi)',
               data: paceData,
               borderColor: varColor('--accent'),
               backgroundColor: 'rgba(76, 194, 255, 0.15)',
@@ -389,7 +389,7 @@
               yAxisID: 'y'
             },
             {
-              label: 'Distance (km)',
+              label: 'Distance (mi)',
               data: distanceData,
               borderColor: varColor('--accent-2'),
               backgroundColor: 'rgba(120, 245, 197, 0.15)',
@@ -409,7 +409,7 @@
                   if (context.dataset.label.includes('Pace')) {
                     return `${context.dataset.label}: ${formatPace(Number(context.raw) * 60)}`;
                   }
-                  return `${context.dataset.label}: ${Number(context.raw).toFixed(1)} km`;
+                  return `${context.dataset.label}: ${Number(context.raw).toFixed(1)} mi`;
                 }
               }
             }
@@ -449,6 +449,16 @@
       const effort = parseInt(document.getElementById('run-effort').value, 10);
 
       if (!date || !distance || !duration) return;
+      const seconds = parseDurationToSeconds(duration);
+      if (!seconds) {
+        alert('Please enter a duration in hh:mm:ss format.');
+        return;
+      }
+      if (distance <= 0) {
+        alert('Please enter a distance greater than 0.');
+        return;
+      }
+
       const newRun = addPaceToRun({ date, distance, duration, effort });
       runs.push(newRun);
       runForm.reset();
@@ -461,7 +471,7 @@
       buildChart();
     }
 
-    // Initialize with sample data
+    // Initialize with blank state
     refreshUI();
   </script>
 </body>
