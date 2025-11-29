@@ -86,6 +86,22 @@
       align-items: center;
       flex-wrap: wrap;
     }
+
+    .back-link {
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #0c111b;
+      font-weight: 600;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .back-link:hover {
+      background: #111724;
+      border-color: #2a3240;
+    }
     .status {
       padding: 10px 12px;
       border-radius: 10px;
@@ -143,6 +159,7 @@
   <header>
     <h1>Running Planner – Strava Sync</h1>
     <div class="actions">
+      <a class="back-link" href="index.html">Back to Planner</a>
       <button id="connect-strava">Connect Strava</button>
       <div id="status" class="status">Waiting to connect…</div>
     </div>
