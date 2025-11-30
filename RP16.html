@@ -234,24 +234,25 @@
       }
     }
 
-    function handleAuthCode() {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
-      if (!code) {
-        setStatus("Waiting to connect…");
-        return;
-      }
-      setStatus("Authorization successful. Loading activities…");
-      fetchActivities();
-    }
+    function handleAuthState() {
+  const params = new URLSearchParams(window.location.search);
+  const isConnected = params.get("strava") === "connected";
+
+  if (!isConnected) {
+    setStatus("Waiting to connect…");
+    return;
+  }
+  setStatus("Connected to Strava. Loading activities…");
+  fetchActivities();
+}
 
     connectBtn.addEventListener("click", () => {
       window.location.href = STRAVA_AUTH_URL;
     });
 
     document.addEventListener("DOMContentLoaded", () => {
-      handleAuthCode();
-    });
+  handleAuthState();
+});
   </script>
 </body>
 </html>
