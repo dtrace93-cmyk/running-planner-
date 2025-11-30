@@ -184,38 +184,72 @@
       statusEl.style.color = variant === "error" ? "var(--danger)" : "var(--muted)";
     }
 
-    function renderActivities(data) {
-      if (!Array.isArray(data) || data.length === 0) {
-        activitiesEl.textContent = "No activities found from Strava.";
-        activitiesEl.className = "muted";
-        return;
-      }
-      const list = document.createElement("ul");
-      list.className = "activity-list";
-      data.forEach((activity) => {
-        const li = document.createElement("li");
-        li.className = "activity-item";
-        const title = document.createElement("h3");
-        title.textContent = activity.name || "Untitled activity";
-        const meta = document.createElement("p");
-        meta.className = "activity-meta";
-        const distance = activity.distance ? `${activity.distance} ${activity.distance_unit || ""}` : "Distance: —";
-        const duration = activity.moving_time ? `Time: ${activity.moving_time}` : "Time: —";
-        const start = activity.start_date || activity.date || "Date: —";
-        meta.textContent = `${distance} • ${duration} • ${start}`;
-        li.appendChild(title);
-        li.appendChild(meta);
-        if (activity.description) {
-          const desc = document.createElement("p");
-          desc.className = "activity-meta";
-          desc.textContent = activity.description;
-          li.appendChild(desc);
-        }
-        list.appendChild(li);
-      });
-      activitiesEl.innerHTML = "";
-      activitiesEl.appendChild(list);
+function formatDuration(seconds) {
+  if (!seconds && seconds !== 0) return "—";
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
+}
+
+function renderActivities(data) {
+  if (!Array.isArray(data) || data.length === 0) {
+    activitiesEl.textContent = "No activities found from Strava.";
+    activitiesEl.className = "muted";
+    return;
+  }
+  const list = document.createElement("ul");
+  list.className = "activity-list";
+
+  data.forEach((activity) => {
+    const li = document.createElement("li");
+    li.className = "activity-item";
+
+    const title = document.createElement("h3");
+    title.textContent = activity.name || "Untitled activity";
+
+    const meta = document.createElement("p");
+    meta.className = "activity-meta";
+
+    const distance =
+      typeof activity.distanceMiles === "number"
+        ? `Distance: ${activity.distanceMiles} miles`
+        : "Distance: —";
+
+    const duration =
+      typeof activity.movingTimeSec === "number"
+        ? `Time: ${formatDuration(activity.movingTimeSec)}`
+        : "Time: —";
+
+    const dateText = activity.startDate
+      ? `Date: ${new Date(activity.startDate).toLocaleDateString()}`
+      : "Date: —";
+
+    meta.textContent = `${distance} • ${duration} • ${dateText}`;
+
+    li.appendChild(title);
+    li.appendChild(meta);
+
+    // Optional extra info: type / pace / HR
+    const extraBits = [];
+    if (activity.type) extraBits.push(activity.type);
+    if (activity.paceSecondsPerMile)
+      extraBits.push(`Pace: ${activity.paceSecondsPerMile}s/mi`);
+    if (activity.averageHeartrate)
+      extraBits.push(`HR: ${activity.averageHeartrate} bpm`);
+
+    if (extraBits.length) {
+      const extra = document.createElement("p");
+      extra.className = "activity-meta";
+      extra.textContent = extraBits.join(" • ");
+      li.appendChild(extra);
     }
+
+    list.appendChild(li);
+  });
+
+  activitiesEl.innerHTML = "";
+  activitiesEl.appendChild(list);
+}
 
     async function fetchActivities() {
       setStatus("Fetching activities from Strava…");
