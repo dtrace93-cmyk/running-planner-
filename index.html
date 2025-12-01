@@ -369,6 +369,14 @@
         <div id="dashboard-section" class="app-section">
           <section>
             <div class="section-header">
+              <h2>Latest Strava Run</h2>
+              <span class="stat-label">Fetched from your connected Strava account</span>
+            </div>
+            <div class="mini-card" id="strava-summary">Loading latest Strava run…</div>
+          </section>
+
+          <section>
+            <div class="section-header">
               <h2>Run Summary</h2>
               <span class="stat-label">Stats update as you log runs</span>
             </div>
@@ -759,9 +767,12 @@
     const exportJsonSettingsBtn = document.getElementById('export-json-settings');
     const importJsonSettingsInput = document.getElementById('import-json-settings');
     const userNotesEl = document.getElementById('user-notes');
+    const stravaSummaryEl = document.getElementById('strava-summary');
 
     const navItems = document.querySelectorAll('.sidebar-nav-item');
     const appSections = document.querySelectorAll('.app-section');
+
+    const STRAVA_ACTIVITIES_URL = 'https://probable-goggles-jjv4qj56xvqjh5wxv-4000.app.github.dev/api/strava/activities';
 
     function setActiveSection(sectionId) {
       appSections.forEach(sec => {
@@ -793,6 +804,79 @@
     let runs = [];
     let runIdCounter = 1;
     let chart;
+
+    function getActivityTimestamp(activity) {
+      const candidates = [activity.startDate, activity.start_date, activity.startDateLocal, activity.start_date_local, activity.startDateUTC, activity.start_date_utc];
+      for (const value of candidates) {
+        const ts = value ? Date.parse(value) : NaN;
+        if (!Number.isNaN(ts)) return ts;
+      }
+      return 0;
+    }
+
+    function milesFromActivity(activity) {
+      if (typeof activity?.distanceMiles === 'number') return activity.distanceMiles;
+      if (typeof activity?.distance === 'number') return activity.distance / 1609.34;
+      return null;
+    }
+
+    function secondsFromActivity(activity) {
+      if (typeof activity?.movingTimeSec === 'number') return activity.movingTimeSec;
+      if (typeof activity?.moving_time === 'number') return activity.moving_time;
+      if (typeof activity?.movingTime === 'number') return activity.movingTime;
+      return 0;
+    }
+
+    function formatMinutesSeconds(totalSeconds) {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = Math.max(0, Math.round(totalSeconds - minutes * 60));
+      return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
+    }
+
+    async function fetchLatestStravaRun() {
+      if (!stravaSummaryEl) return;
+      stravaSummaryEl.textContent = 'Loading latest Strava run…';
+      try {
+        const response = await fetch(STRAVA_ACTIVITIES_URL);
+        if (response.status === 401) {
+          stravaSummaryEl.textContent = 'Strava not connected.';
+          return;
+        }
+        if (!response.ok) {
+          stravaSummaryEl.textContent = 'Unable to load Strava data.';
+          return;
+        }
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+          stravaSummaryEl.textContent = 'Unable to load Strava data.';
+          return;
+        }
+        const runsOnly = data.filter(act => (act?.type || '').toLowerCase() === 'run');
+        if (runsOnly.length === 0) {
+          stravaSummaryEl.textContent = 'No recent running activities found.';
+          return;
+        }
+        let latestRun = runsOnly[0];
+        let latestTs = getActivityTimestamp(latestRun);
+        runsOnly.forEach((act) => {
+          const ts = getActivityTimestamp(act);
+          if (ts > latestTs) {
+            latestTs = ts;
+            latestRun = act;
+          }
+        });
+
+        const miles = milesFromActivity(latestRun);
+        const movingSeconds = secondsFromActivity(latestRun);
+        const dateLabel = latestTs ? new Date(latestTs).toLocaleDateString() : 'Unknown date';
+        const milesText = typeof miles === 'number' ? miles.toFixed(2) : 'Unknown distance';
+        const timeText = formatMinutesSeconds(movingSeconds || 0);
+        stravaSummaryEl.textContent = `Last run: ${milesText} miles in ${timeText} on ${dateLabel}`;
+      } catch (error) {
+        console.error('Failed to load Strava data', error);
+        stravaSummaryEl.textContent = 'Unable to load Strava data.';
+      }
+    }
 
     function parseDurationToSeconds(value) {
       if (!value && value !== 0) return 0;
@@ -2119,6 +2203,7 @@
     loadUserNotes();
     runs = loadRunsFromStorage();
     refreshUI();
+    fetchLatestStravaRun();
   </script>
 </body>
 </html>
