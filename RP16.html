@@ -279,8 +279,9 @@
         setButtonLabel("Reconnect Strava");
       } catch (error) {
         console.error("Failed to load Strava activities", error);
-        setStatus("Unable to load Strava activities. Please try again.", "error");
-        activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
+        setStatus("Not connected to Strava.");
+        setButtonLabel("Connect Strava");
+        activitiesEl.textContent = "No activities loaded yet.";
         activitiesEl.className = "muted";
       }
     }
@@ -290,7 +291,7 @@
     });
 
     document.addEventListener("DOMContentLoaded", () => {
-      fetchActivities();
+      fetchActivitiesOnLoad();
     });
   </script>
 </body>
