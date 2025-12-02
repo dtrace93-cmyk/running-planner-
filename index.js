@@ -42,6 +42,34 @@ app.get('/api/strava/status', async (req, res) => {
   }
 });
 
+// Activities endpoint with guarded unauthenticated handling
+app.get('/api/strava/activities', async (req, res) => {
+  if (!tokenStore.accessToken) {
+    return res.status(401).json({ error: 'not_authenticated' });
+  }
+
+  try {
+    await ensureFreshAccessToken();
+
+    // TODO: Replace with real Strava API fetch using the valid access token
+    // Placeholder empty list keeps the endpoint functional without real Strava wiring
+    return res.json([]);
+  } catch (err) {
+    const message = err && err.message ? err.message : '';
+    const authFailure =
+      message.includes('No access token') ||
+      message.includes('No refresh token') ||
+      message.includes('expired');
+
+    if (authFailure) {
+      return res.status(401).json({ error: 'not_authenticated' });
+    }
+
+    console.error('Error fetching activities:', err);
+    return res.status(500).json({ error: 'failed_to_fetch_activities' });
+  }
+});
+
 // Export the app for use by a server entry point or tests.
 module.exports = app;
 

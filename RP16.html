@@ -222,29 +222,32 @@
     }
 
     async function fetchActivitiesOnLoad() {
-      // initial page load flow: attempt to fetch activities immediately
+      // initial page load flow: always attempt to load activities on entry
       setStatus("Fetching activities from Strava…");
       try {
         const response = await fetch(STRAVA_ACTIVITIES_URL, { method: "GET" });
+
         if (response.status === 401) {
           // when to show the connect button: not authenticated yet
-          setStatus("Not connected to Strava.", "error");
+          setStatus("Not connected to Strava.");
           setButtonLabel("Connect Strava");
           activitiesEl.textContent = "No activities loaded yet.";
           activitiesEl.className = "muted";
           return;
         }
+
         if (!response.ok) {
           throw new Error(`API responded with ${response.status}`);
         }
+
         const data = await response.json();
         renderActivities(data);
         setStatus("Activities loaded from Strava.");
         setButtonLabel("Reconnect Strava");
       } catch (error) {
-        // how errors are handled: surface status, keep connect CTA primary
+        // how errors are handled: network/other failures still surface a friendly message
         console.error("Failed to load Strava activities", error);
-        setStatus("Not connected to Strava.", "error");
+        setStatus("Not connected to Strava.");
         setButtonLabel("Connect Strava");
         activitiesEl.textContent = "No activities loaded yet.";
         activitiesEl.className = "muted";
