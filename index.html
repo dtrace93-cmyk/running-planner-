@@ -833,14 +833,6 @@
       return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
     }
 
-    function formatSecondsToHms(totalSeconds) {
-      if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '';
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = Math.floor(totalSeconds % 60);
-      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    }
-
     async function fetchLatestStravaRun() {
       if (!stravaSummaryEl) return;
       stravaSummaryEl.textContent = 'Loading latest Strava run…';
@@ -859,11 +851,6 @@
           stravaSummaryEl.textContent = 'Unable to load Strava data.';
           return;
         }
-        const added = mergeStravaRunsIntoLog(data);
-        if (added > 0) {
-          refreshUI();
-        }
-
         const runsOnly = data.filter(act => (act?.type || '').toLowerCase() === 'run');
         if (runsOnly.length === 0) {
           stravaSummaryEl.textContent = 'No recent running activities found.';
@@ -888,70 +875,6 @@
       } catch (error) {
         console.error('Failed to load Strava data', error);
         stravaSummaryEl.textContent = 'Unable to load Strava data.';
-      }
-    }
-
-    function mapStravaActivityToRunEntry(activity) {
-      if (!activity || (activity.type || '').toLowerCase() !== 'run') return null;
-      const completedMiles = milesFromActivity(activity) ?? 0;
-      const movingSeconds = secondsFromActivity(activity) || 0;
-      const paceSeconds = Number.isFinite(activity.paceSecondsPerMile)
-        ? activity.paceSecondsPerMile
-        : (completedMiles ? movingSeconds / completedMiles : null);
-      const date = normalizeDate(activity.startDate || activity.start_date || activity.startDateLocal || activity.start_date_local);
-      const name = activity.name || 'Strava run';
-      const sessionType = detectSessionType(name, '', completedMiles || 0);
-
-      return addPaceToRun({
-        id: createRunId(),
-        source: 'strava',
-        stravaId: activity.id,
-        date,
-        distance: completedMiles,
-        plannedMiles: completedMiles,
-        completedMiles,
-        distanceText: `${name} (${completedMiles ? completedMiles.toFixed(2) + ' mi' : 'Run'})`,
-        sessionType,
-        type: sessionType,
-        avgHr: Number.isFinite(activity.averageHeartrate) ? Number(activity.averageHeartrate) : null,
-        effort: 5,
-        temperature: null,
-        duration: formatSecondsToHms(movingSeconds),
-        weather: '',
-        timeOfDay: 'Unknown',
-        paceSeconds,
-        resultText: name
-      });
-    }
-
-    function mergeStravaRunsIntoLog(data) {
-      if (!Array.isArray(data)) return 0;
-      const existingIds = new Set(runs.filter(r => r.stravaId != null).map(r => String(r.stravaId)));
-      const mapped = data
-        .filter(act => (act?.type || '').toLowerCase() === 'run')
-        .map(mapStravaActivityToRunEntry)
-        .filter(Boolean)
-        .filter(entry => !existingIds.has(String(entry.stravaId)));
-      if (!mapped.length) return 0;
-      runs = runs.concat(mapped);
-      return mapped.length;
-    }
-
-    async function syncStravaRunsIntoLog() {
-      try {
-        const response = await fetch(STRAVA_ACTIVITIES_URL);
-        if (response.status === 401) return; // Not connected; skip quietly
-        if (!response.ok) {
-          console.warn('Unable to sync Strava runs', response.status);
-          return;
-        }
-        const data = await response.json();
-        const added = mergeStravaRunsIntoLog(data);
-        if (added > 0) {
-          refreshUI();
-        }
-      } catch (error) {
-        console.error('Failed to sync Strava runs', error);
       }
     }
 
@@ -2281,7 +2204,6 @@
     runs = loadRunsFromStorage();
     refreshUI();
     fetchLatestStravaRun();
-    syncStravaRunsIntoLog().catch(console.error);
   </script>
 </body>
 </html>
