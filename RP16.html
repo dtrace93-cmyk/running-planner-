@@ -200,8 +200,10 @@
         activitiesEl.className = "muted";
         return;
       }
+
       const list = document.createElement("ul");
       list.className = "activity-list";
+
       data.forEach((activity) => {
         const li = document.createElement("li");
         li.className = "activity-item";
@@ -209,30 +211,31 @@
         const title = document.createElement("h3");
         title.textContent = activity.name || "Untitled activity";
 
-        const metaLines = [];
-        const distanceLine = typeof activity.distanceMiles === "number" ? `Distance: ${activity.distanceMiles.toFixed(2)} miles` : "Distance: —";
-        const timeLine = typeof activity.movingTimeSec === "number" ? `Time: ${formatDuration(activity.movingTimeSec)}` : "Time: —";
-        const dateLine = activity.startDate ? `Date: ${new Date(activity.startDate).toLocaleDateString()}` : "Date: —";
-        metaLines.push(distanceLine, timeLine, dateLine);
+        const distanceLine = typeof activity.distanceMiles === "number"
+          ? `Distance: ${activity.distanceMiles.toFixed(2)} miles`
+          : "Distance: —";
+        const timeLine = typeof activity.movingTimeSec === "number"
+          ? `Time: ${formatDuration(activity.movingTimeSec)}`
+          : "Time: —";
+        const dateLine = activity.startDate
+          ? `Date: ${new Date(activity.startDate).toLocaleDateString()}`
+          : "Date: —";
 
         const meta = document.createElement("p");
         meta.className = "activity-meta";
-        meta.textContent = metaLines.join(" • ");
+        meta.textContent = `${distanceLine} • ${timeLine} • ${dateLine}`;
         li.appendChild(title);
         li.appendChild(meta);
 
         const extras = [];
-        if (activity.type) extras.push(`Type: ${activity.type}`);
+        if (activity.type) extras.push(activity.type);
         if (typeof activity.paceSecondsPerMile === "number") {
-          const paceMins = Math.floor(activity.paceSecondsPerMile / 60);
-          const paceSecs = Math.round(activity.paceSecondsPerMile % 60)
-            .toString()
-            .padStart(2, "0");
-          extras.push(`Pace: ${paceMins}:${paceSecs} /mi`);
+          extras.push(`Pace: ${activity.paceSecondsPerMile}s/mi`);
         }
         if (typeof activity.averageHeartrate === "number") {
-          extras.push(`Avg HR: ${activity.averageHeartrate} bpm`);
+          extras.push(`HR: ${activity.averageHeartrate} bpm`);
         }
+
         if (extras.length) {
           const extraLine = document.createElement("p");
           extraLine.className = "activity-meta";
@@ -242,15 +245,16 @@
 
         list.appendChild(li);
       });
+
       activitiesEl.innerHTML = "";
       activitiesEl.appendChild(list);
     }
 
-    async function fetchActivitiesOnLoad() {
-      // initial page load flow: always attempt to load activities on entry
+    async function fetchActivities() {
+      // initial page load flow: attempt to load activities immediately
       setStatus("Fetching activities from Strava…");
       try {
-        const response = await fetch(STRAVA_ACTIVITIES_URL, { method: "GET" });
+        const response = await fetch(STRAVA_ACTIVITIES_URL);
 
         if (response.status === 401) {
           setStatus("Not connected to Strava.");
@@ -261,11 +265,15 @@
         }
 
         if (!response.ok) {
-          throw new Error(`API responded with ${response.status}`);
+          setStatus("Unable to load Strava activities. Please try again.", "error");
+          console.error("Error loading Strava activities:", response.status, response.statusText);
+          activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
+          activitiesEl.className = "muted";
+          return;
         }
 
         const data = await response.json();
-        console.log("Strava activities:", data.length, data[0]);
+        console.log("Strava activities:", Array.isArray(data) ? data.length : 0, Array.isArray(data) && data[0]);
         renderActivities(data);
         setStatus("Activities loaded from Strava.");
         setButtonLabel("Reconnect Strava");
