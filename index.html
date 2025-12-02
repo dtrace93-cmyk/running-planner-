@@ -649,7 +649,6 @@
                     <th>Planned (mi)</th>
                     <th>Completed (mi)</th>
                     <th>Type</th>
-                    <th>Source</th>
                     <th>Status</th>
                     <th>Avg HR</th>
                     <th>Effort</th>
@@ -834,14 +833,6 @@
       return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
     }
 
-    function formatSecondsToHms(totalSeconds) {
-      if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '';
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = Math.floor(totalSeconds % 60);
-      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    }
-
     async function fetchLatestStravaRun() {
       if (!stravaSummaryEl) return;
       stravaSummaryEl.textContent = 'Loading latest Strava run…';
@@ -860,11 +851,6 @@
           stravaSummaryEl.textContent = 'Unable to load Strava data.';
           return;
         }
-        const added = mergeStravaRunsIntoLog(data);
-        if (added > 0) {
-          refreshUI();
-        }
-
         const runsOnly = data.filter(act => (act?.type || '').toLowerCase() === 'run');
         if (runsOnly.length === 0) {
           stravaSummaryEl.textContent = 'No recent running activities found.';
@@ -889,70 +875,6 @@
       } catch (error) {
         console.error('Failed to load Strava data', error);
         stravaSummaryEl.textContent = 'Unable to load Strava data.';
-      }
-    }
-
-    function mapStravaActivityToRunEntry(activity) {
-      if (!activity || (activity.type || '').toLowerCase() !== 'run') return null;
-      const completedMiles = milesFromActivity(activity) ?? 0;
-      const movingSeconds = secondsFromActivity(activity) || 0;
-      const paceSeconds = Number.isFinite(activity.paceSecondsPerMile)
-        ? activity.paceSecondsPerMile
-        : (completedMiles ? movingSeconds / completedMiles : null);
-      const date = normalizeDate(activity.startDate || activity.start_date || activity.startDateLocal || activity.start_date_local);
-      const name = activity.name || 'Strava run';
-      const sessionType = detectSessionType(name, '', completedMiles || 0);
-
-      return addPaceToRun({
-        id: createRunId(),
-        source: 'strava',
-        stravaId: activity.id,
-        date,
-        distance: completedMiles,
-        plannedMiles: completedMiles,
-        completedMiles,
-        distanceText: `${name} (${completedMiles ? completedMiles.toFixed(2) + ' mi' : 'Run'})`,
-        sessionType,
-        type: sessionType,
-        avgHr: Number.isFinite(activity.averageHeartrate) ? Number(activity.averageHeartrate) : null,
-        effort: 5,
-        temperature: null,
-        duration: formatSecondsToHms(movingSeconds),
-        weather: '',
-        timeOfDay: 'Unknown',
-        paceSeconds,
-        resultText: name
-      });
-    }
-
-    function mergeStravaRunsIntoLog(data) {
-      if (!Array.isArray(data)) return 0;
-      const existingIds = new Set(runs.filter(r => r.stravaId != null).map(r => String(r.stravaId)));
-      const mapped = data
-        .filter(act => (act?.type || '').toLowerCase() === 'run')
-        .map(mapStravaActivityToRunEntry)
-        .filter(Boolean)
-        .filter(entry => !existingIds.has(String(entry.stravaId)));
-      if (!mapped.length) return 0;
-      runs = runs.concat(mapped);
-      return mapped.length;
-    }
-
-    async function syncStravaRunsIntoLog() {
-      try {
-        const response = await fetch(STRAVA_ACTIVITIES_URL);
-        if (response.status === 401) return; // Not connected; skip quietly
-        if (!response.ok) {
-          console.warn('Unable to sync Strava runs', response.status);
-          return;
-        }
-        const data = await response.json();
-        const added = mergeStravaRunsIntoLog(data);
-        if (added > 0) {
-          refreshUI();
-        }
-      } catch (error) {
-        console.error('Failed to sync Strava runs', error);
       }
     }
 
@@ -1423,7 +1345,7 @@
 
       if (!combined.length) {
         const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="15" style=\"text-align:center; color: var(--muted);\">No runs logged yet</td>`;
+        row.innerHTML = `<td colspan="14" style=\"text-align:center; color: var(--muted);\">No runs logged yet</td>`;
         runLogEl.appendChild(row);
         return;
       }
@@ -1442,8 +1364,6 @@
         const weatherText = run.weather || (run.temperature != null ? `${run.temperature}°C` : '—');
         const loadText = run.load ? run.load.toFixed(1) : '—';
         const flagsText = (run.riskFlags || []).map(f => `<span class="flag-chip">${f}</span>`).join('');
-        const sourceLabel = run.source === 'strava' ? 'Strava' : 'Manual';
-        const sourceBadge = `<span class="badge ${run.source === 'strava' ? 'info' : 'success'}">${sourceLabel}</span>`;
         const row = document.createElement('tr');
         if (run.riskFlags && run.riskFlags.length) row.classList.add('risk-row');
         row.innerHTML = `
@@ -1451,7 +1371,6 @@
           <td>${run.plannedMiles ? run.plannedMiles.toFixed(1) + ' mi' : '—'}</td>
           <td>${run.completedMiles ? run.completedMiles.toFixed(1) + ' mi' : '—'}</td>
           <td><span class="table-badge ${typeClass}">${run.type || '—'}</span></td>
-          <td>${sourceBadge}</td>
           <td class="${statusClass}">${statusText}${flagsText ? '<div>' + flagsText + '</div>' : ''}</td>
           <td>${run.avgHr ?? '—'}</td>
           <td>${run.effort ?? '—'}</td>
@@ -1469,32 +1388,28 @@
 
     function updateStats() {
       const sessions = buildSessions();
-      const totalPlanned = sessions.reduce((sum, s) => sum + (s.plannedMiles || 0), 0);
+      const planEntries = runs.filter(r => r.source === 'plan');
+      const plannedMiles = planEntries.reduce((sum, p) => sum + (p.plannedMiles || 0), 0);
       const totalCompleted = sessions.reduce((sum, s) => sum + (s.completedMiles || 0), 0);
-      const totalRuns = sessions.length;
-      const totalSeconds = sessions.reduce((sum, s) => {
-        const durationSeconds = parseDurationToSeconds(s.duration);
-        if (durationSeconds) return sum + durationSeconds;
-        if (s.paceSeconds && s.completedMiles) return sum + (s.paceSeconds * s.completedMiles);
-        return sum;
-      }, 0);
 
-      const currentWeekId = normalizeWeekId('', new Date());
-      const thisWeekSessions = sessions.filter(s => normalizeWeekId(s.weekId, s.dateValue) === currentWeekId);
-      const thisWeekMiles = thisWeekSessions.reduce((sum, s) => sum + (s.completedMiles || 0), 0);
-      const thisWeekRuns = thisWeekSessions.length;
+      const datedPlan = planEntries.filter(p => p.date && p.plannedMiles);
+      const planDates = datedPlan.map(p => new Date(p.date)).filter(d => d.toString() !== 'Invalid Date');
+      let avgWeekly = 0;
+      if (planDates.length) {
+        const firstDate = new Date(Math.min(...planDates));
+        const lastDate = new Date(Math.max(...planDates));
+        const diffWeeks = Math.max(1, (lastDate - firstDate) / (1000 * 60 * 60 * 24 * 7));
+        avgWeekly = plannedMiles / diffWeeks;
+      }
 
       const fastestCandidates = sessions.filter(s => s.paceSeconds).map(s => s.paceSeconds);
       const fastest = fastestCandidates.length ? Math.min(...fastestCandidates) : null;
-      const longest = sessions.length ? Math.max(...sessions.map(s => (s.completedMiles || s.plannedMiles || 0))) : 0;
+      const longest = sessions.length ? Math.max(...sessions.map(s => (s.plannedMiles || s.completedMiles || 0))) : 0;
 
-      totalDistanceEl.textContent = `${totalPlanned.toFixed(1)} mi`;
+      totalDistanceEl.textContent = `${plannedMiles.toFixed(1)} mi`;
       avgWeeklyEl.textContent = `${totalCompleted.toFixed(1)} mi`;
       fastestPaceEl.textContent = fastest ? formatPace(fastest) : '–';
       longestRunEl.textContent = longest ? `${longest.toFixed(1)} mi` : '–';
-
-      totalDistanceEl.title = `Runs: ${totalRuns} · Time: ${formatMinutesSeconds(totalSeconds)}`;
-      avgWeeklyEl.title = `This week: ${thisWeekMiles.toFixed(1)} mi across ${thisWeekRuns} run${thisWeekRuns === 1 ? '' : 's'}`;
 
       // include completed miles in helper message when available
       if (planUploadMessage) {
@@ -1593,8 +1508,7 @@
         return;
       }
 
-      const todayWeekId = normalizeWeekId('', new Date());
-      const currentWeek = summary.weeks.find(w => w.id === todayWeekId) || summary.weeks[summary.weeks.length - 1];
+      const currentWeek = summary.weeks[summary.weeks.length - 1];
       const currentCard = document.createElement('div');
       currentCard.className = 'card';
       currentCard.innerHTML = `
@@ -2290,7 +2204,6 @@
     runs = loadRunsFromStorage();
     refreshUI();
     fetchLatestStravaRun();
-    syncStravaRunsIntoLog().catch(console.error);
   </script>
 </body>
 </html>
