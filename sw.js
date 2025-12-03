@@ -1,11 +1,11 @@
 const CACHE_NAME = 'rp-cache-v1';
 
 const CACHED_URLS = [
-  '/',
-  '/index.html',
-  '/RP16.html',
-  '/index.js',
-  '/manifest.webmanifest'
+  './',
+  'index.html',
+  'RP16.html',
+  'index.js',
+  'manifest.webmanifest'
 ];
 
 self.addEventListener('install', (event) => {
