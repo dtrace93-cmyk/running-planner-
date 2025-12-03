@@ -188,65 +188,99 @@
       connectBtn.textContent = label;
     }
 
+    function formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.round(seconds % 60);
+      return `${mins}m ${secs}s`;
+    }
+
     function renderActivities(data) {
       if (!Array.isArray(data) || data.length === 0) {
         activitiesEl.textContent = "No activities found from Strava.";
         activitiesEl.className = "muted";
         return;
       }
+
       const list = document.createElement("ul");
       list.className = "activity-list";
+
       data.forEach((activity) => {
         const li = document.createElement("li");
         li.className = "activity-item";
+
         const title = document.createElement("h3");
         title.textContent = activity.name || "Untitled activity";
+
+        const distanceLine = typeof activity.distanceMiles === "number"
+          ? `Distance: ${activity.distanceMiles.toFixed(2)} miles`
+          : "Distance: —";
+        const timeLine = typeof activity.movingTimeSec === "number"
+          ? `Time: ${formatDuration(activity.movingTimeSec)}`
+          : "Time: —";
+        const dateLine = activity.startDate
+          ? `Date: ${new Date(activity.startDate).toLocaleDateString()}`
+          : "Date: —";
+
         const meta = document.createElement("p");
         meta.className = "activity-meta";
-        const distance = activity.distance ? `${activity.distance} ${activity.distance_unit || ""}` : "Distance: —";
-        const duration = activity.moving_time ? `Time: ${activity.moving_time}` : "Time: —";
-        const start = activity.start_date || activity.date || "Date: —";
-        meta.textContent = `${distance} • ${duration} • ${start}`;
+        meta.textContent = `${distanceLine} • ${timeLine} • ${dateLine}`;
         li.appendChild(title);
         li.appendChild(meta);
-        if (activity.description) {
-          const desc = document.createElement("p");
-          desc.className = "activity-meta";
-          desc.textContent = activity.description;
-          li.appendChild(desc);
+
+        const extras = [];
+        if (activity.type) extras.push(activity.type);
+        if (typeof activity.paceSecondsPerMile === "number") {
+          extras.push(`Pace: ${activity.paceSecondsPerMile}s/mi`);
         }
+        if (typeof activity.averageHeartrate === "number") {
+          extras.push(`HR: ${activity.averageHeartrate} bpm`);
+        }
+
+        if (extras.length) {
+          const extraLine = document.createElement("p");
+          extraLine.className = "activity-meta";
+          extraLine.textContent = extras.join(" • ");
+          li.appendChild(extraLine);
+        }
+
         list.appendChild(li);
       });
+
       activitiesEl.innerHTML = "";
       activitiesEl.appendChild(list);
     }
 
-    async function fetchActivitiesOnLoad() {
-      // initial page load flow: attempt to fetch activities immediately
+    async function fetchActivities() {
+      // initial page load flow: attempt to load activities immediately
       setStatus("Fetching activities from Strava…");
       try {
-        const response = await fetch(STRAVA_ACTIVITIES_URL, { method: "GET" });
+        const response = await fetch(STRAVA_ACTIVITIES_URL);
+
         if (response.status === 401) {
-          // when to show the connect button: not authenticated yet
-          setStatus("Not connected to Strava.", "error");
+          setStatus("Not connected to Strava.");
           setButtonLabel("Connect Strava");
           activitiesEl.textContent = "No activities loaded yet.";
           activitiesEl.className = "muted";
           return;
         }
+
         if (!response.ok) {
-          throw new Error(`API responded with ${response.status}`);
+          setStatus("Unable to load Strava activities. Please try again.", "error");
+          console.error("Error loading Strava activities:", response.status, response.statusText);
+          activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
+          activitiesEl.className = "muted";
+          return;
         }
+
         const data = await response.json();
+        console.log("Strava activities:", Array.isArray(data) ? data.length : 0, Array.isArray(data) && data[0]);
         renderActivities(data);
         setStatus("Activities loaded from Strava.");
         setButtonLabel("Reconnect Strava");
       } catch (error) {
-        // how errors are handled: surface status, keep connect CTA primary
         console.error("Failed to load Strava activities", error);
-        setStatus("Not connected to Strava.", "error");
-        setButtonLabel("Connect Strava");
-        activitiesEl.textContent = "No activities loaded yet.";
+        setStatus("Unable to load Strava activities. Please try again.", "error");
+        activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
         activitiesEl.className = "muted";
       }
     }
@@ -256,7 +290,7 @@
     });
 
     document.addEventListener("DOMContentLoaded", () => {
-      fetchActivitiesOnLoad();
+      fetchActivities();
     });
   </script>
 </body>
