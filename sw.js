@@ -1,5 +1,6 @@
 const CACHE_NAME = 'rp-cache-v1';
 
+// Relative asset paths for GitHub Pages subdirectory hosting
 const CACHED_URLS = [
   './',
   'index.html',
