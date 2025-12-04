@@ -1,480 +1,316 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Running Planner</title>
-  <link rel="manifest" href="manifest.webmanifest"> <!-- Relative path for GitHub Pages subdirectory -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Running Planner – Strava Sync</title>
+
+  <!-- PWA additions -->
+  <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#000000">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- end PWA additions -->
+
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #0f1115;
-      --panel: #181c23;
-      --text: #e8ecf1;
-      --muted: #a8b3c4;
-      --accent: #4cc2ff;
-      --accent-2: #78f5c5;
-      --border: #262b35;
+      --bg: #0f1116;
+      --panel: #161a22;
+      --accent: #6ab0ff;
+      --text: #e6e8ec;
+      --muted: #9aa0ad;
+      --danger: #e57373;
+      --border: #1f2430;
     }
-
     * {
       box-sizing: border-box;
     }
-
     body {
       margin: 0;
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 24px;
     }
-
-    .container {
-      width: min(1100px, 100%);
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
-
-    h1 {
-      margin: 0 0 4px;
-      font-size: clamp(1.8rem, 4vw, 2.4rem);
-    }
-
-    p.lead {
-      margin: 0;
-      color: var(--muted);
-    }
-
-    section {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
-    }
-
-    .section-header {
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(15, 17, 22, 0.92);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
     }
-
-    .section-header h2 {
+    h1 {
       margin: 0;
-      font-size: 1.1rem;
+      font-size: 20px;
+      letter-spacing: 0.2px;
     }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
+    main {
+      max-width: 960px;
+      margin: 24px auto 64px;
+      padding: 0 16px;
     }
-
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    th {
-      text-align: left;
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 12px;
-    }
-
     .card {
-      background: linear-gradient(145deg, rgba(76, 194, 255, 0.08), rgba(120, 245, 197, 0.06));
+      background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
     }
-
-    .stat-label {
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+    .muted {
       color: var(--muted);
-      font-size: 0.9rem;
+      font-size: 14px;
+      margin-top: 0;
     }
-
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-top: 6px;
+    button {
+      background: var(--accent);
+      color: #0b1220;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease;
     }
-
-    form {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
+    button:hover {
+      background: #82c1ff;
     }
-
-    label {
+    button:active {
+      transform: translateY(1px);
+    }
+    .actions {
       display: flex;
-      flex-direction: column;
-      font-size: 0.9rem;
-      color: var(--muted);
-      gap: 6px;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
-    input, button, select {
+    .back-link {
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid var(--border);
       padding: 10px 12px;
       border-radius: 10px;
+      background: #0c111b;
+      font-weight: 600;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .back-link:hover {
+      background: #111724;
+      border-color: #2a3240;
+    }
+    .status {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #1a202d;
       border: 1px solid var(--border);
-      background: #11141a;
-      color: var(--text);
-      font-size: 1rem;
+      font-size: 14px;
+      color: var(--muted);
     }
-
-    input:focus, button:focus, select:focus {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
+    pre {
+      background: #0c0f14;
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 10px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
     }
-
-    button {
-      cursor: pointer;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      color: #0b0d11;
-      font-weight: 700;
-      border: none;
-      transition: transform 0.1s ease, box-shadow 0.2s ease;
+    ul.activity-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 12px;
     }
-
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 18px rgba(76, 194, 255, 0.35);
+    .activity-item {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #121722;
     }
-
-    .chart-wrapper {
-      position: relative;
-      width: 100%;
-      min-height: 280px;
+    .activity-item h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
     }
-
-    .log-table {
-      margin-top: 14px;
-      overflow-x: auto;
+    .activity-meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+      line-height: 1.5;
     }
-
-    @media (max-width: 600px) {
-      body { padding: 12px; }
-      th, td { padding: 8px; }
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      main {
+        margin-top: 16px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Running Planner</h1>
-      <p class="lead">Map your training plan, log runs, and watch progress in real-time.</p>
-    </header>
-
-    <section>
-      <div class="section-header">
-        <h2>Training Plan</h2>
-        <span class="stat-label">Upcoming key sessions</span>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Distance (mi)</th>
-            <th>Target Pace (min/mi)</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="4" style="text-align:center; color: var(--muted);">Add your training sessions here</td>
-          </tr>
-        </tbody>
-      </table>
+  <header>
+    <h1>Running Planner – Strava Sync</h1>
+    <div class="actions">
+      <a class="back-link" href="index.html">Back to Planner</a>
+      <button id="connect-strava">Connect Strava</button>
+      <div id="status" class="status">Waiting to connect…</div>
+    </div>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Synced Strava Activities</h2>
+      <p class="muted">Connect to import your latest Strava activities from the API.</p>
+      <div id="activities" class="muted">No activities loaded yet.</div>
     </section>
-
-    <section>
-      <div class="section-header">
-        <h2>Run Summary</h2>
-        <span class="stat-label">Stats update as you log runs</span>
-      </div>
-      <div class="grid">
-        <div class="card">
-          <div class="stat-label">Total Distance</div>
-          <div class="stat-value" id="total-distance">0 mi</div>
-        </div>
-        <div class="card">
-          <div class="stat-label">Average Weekly Distance</div>
-          <div class="stat-value" id="avg-weekly">0 mi</div>
-        </div>
-        <div class="card">
-          <div class="stat-label">Fastest Pace</div>
-          <div class="stat-value" id="fastest-pace">–</div>
-        </div>
-        <div class="card">
-          <div class="stat-label">Longest Run</div>
-          <div class="stat-value" id="longest-run">–</div>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="section-header">
-        <h2>Progress</h2>
-        <span class="stat-label">Pace and distance over time</span>
-      </div>
-      <div class="chart-wrapper">
-        <canvas id="progressChart"></canvas>
-      </div>
-    </section>
-
-    <section>
-      <div class="section-header">
-        <h2>Log a Run</h2>
-        <span class="stat-label">Add completed runs to keep stats fresh</span>
-      </div>
-      <form id="run-form">
-        <label>
-          Date
-          <input type="date" id="run-date" required>
-        </label>
-        <label>
-          Distance (miles)
-          <input type="number" step="0.1" min="0" id="run-distance" required>
-        </label>
-        <label>
-          Duration (hh:mm:ss)
-          <input type="time" step="1" placeholder="00:45:00" id="run-duration" required>
-        </label>
-        <label>
-          Effort (1–10)
-          <input type="number" min="1" max="10" id="run-effort" required>
-        </label>
-        <button type="submit">Add Run</button>
-      </form>
-      <div class="log-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Distance (mi)</th>
-              <th>Duration</th>
-              <th>Pace (min/mi)</th>
-              <th>Effort</th>
-            </tr>
-          </thead>
-          <tbody id="run-log"></tbody>
-        </table>
-      </div>
-    </section>
-  </div>
+  </main>
   <script>
-document.addEventListener('DOMContentLoaded', () => {
-const runForm = document.getElementById('run-form');
-    const runLogEl = document.getElementById('run-log');
-    const totalDistanceEl = document.getElementById('total-distance');
-    const avgWeeklyEl = document.getElementById('avg-weekly');
-    const fastestPaceEl = document.getElementById('fastest-pace');
-    const longestRunEl = document.getElementById('longest-run');
+    const STRAVA_AUTH_URL = "https://probable-goggles-jjv4qj56xvqjh5wxv-4000.app.github.dev/auth/strava";
+    const STRAVA_ACTIVITIES_URL = "https://probable-goggles-jjv4qj56xvqjh5wxv-4000.app.github.dev/api/strava/activities";
 
-    let runs = [];
-    let chart;
+    const statusEl = document.getElementById("status");
+    const activitiesEl = document.getElementById("activities");
+    const connectBtn = document.getElementById("connect-strava");
 
-    function parseDurationToSeconds(value) {
-      if (!value) return 0;
-      const parts = value.split(':').map(Number);
-      if (parts.length === 2) {
-        const [hh, mm] = parts;
-        return (hh * 3600) + (mm * 60);
-      }
-      if (parts.length === 3) {
-        const [hh, mm, ss] = parts;
-        return (hh * 3600) + (mm * 60) + ss;
-      }
-      return 0;
+    function setStatus(message, variant = "info") {
+      statusEl.textContent = message;
+      statusEl.style.color = variant === "error" ? "var(--danger)" : "var(--muted)";
     }
 
-    function formatPace(secondsPerMile) {
-      if (!isFinite(secondsPerMile) || secondsPerMile <= 0) return '–';
-      const minutes = Math.floor(secondsPerMile / 60);
-      const seconds = Math.round(secondsPerMile % 60).toString().padStart(2, '0');
-      return `${minutes}:${seconds} /mi`;
+    function setButtonLabel(label) {
+      connectBtn.textContent = label;
     }
 
-    function addPaceToRun(run) {
-      const seconds = parseDurationToSeconds(run.duration);
-      const paceSeconds = seconds && run.distance ? seconds / run.distance : 0;
-      return { ...run, paceSeconds };
+    function formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.round(seconds % 60);
+      return `${mins}m ${secs}s`;
     }
 
-    function renderRuns() {
-      runLogEl.innerHTML = '';
-      if (!runs.length) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="5" style="text-align:center; color: var(--muted);">No runs logged yet</td>`;
-        runLogEl.appendChild(row);
+    function renderActivities(data) {
+      if (!Array.isArray(data) || data.length === 0) {
+        activitiesEl.textContent = "No activities found from Strava.";
+        activitiesEl.className = "muted";
         return;
       }
-      const sorted = [...runs].sort((a, b) => new Date(a.date) - new Date(b.date));
-      sorted.forEach(run => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${run.date}</td>
-          <td>${run.distance.toFixed(1)} mi</td>
-          <td>${run.duration}</td>
-          <td>${formatPace(run.paceSeconds)}</td>
-          <td>${run.effort}</td>
-        `;
-        runLogEl.appendChild(row);
-      });
-    }
 
-    function updateStats() {
-      if (!runs.length) {
-        totalDistanceEl.textContent = '0 mi';
-        avgWeeklyEl.textContent = '0 mi';
-        fastestPaceEl.textContent = '–';
-        longestRunEl.textContent = '–';
-        return;
-      }
-      const totalDistance = runs.reduce((sum, r) => sum + r.distance, 0);
-      const sorted = [...runs].sort((a, b) => new Date(a.date) - new Date(b.date));
-      const firstDate = new Date(sorted[0].date);
-      const lastDate = new Date(sorted[sorted.length - 1].date);
-      const diffWeeks = Math.max(1, (lastDate - firstDate) / (1000 * 60 * 60 * 24 * 7));
-      const avgWeekly = totalDistance / diffWeeks;
-      const fastest = Math.min(...runs.map(r => r.paceSeconds));
-      const longest = Math.max(...runs.map(r => r.distance));
+      const list = document.createElement("ul");
+      list.className = "activity-list";
 
-      totalDistanceEl.textContent = `${totalDistance.toFixed(1)} mi`;
-      avgWeeklyEl.textContent = `${avgWeekly.toFixed(1)} mi`;
-      fastestPaceEl.textContent = formatPace(fastest);
-      longestRunEl.textContent = `${longest.toFixed(1)} mi`;
-    }
+      data.forEach((activity) => {
+        const li = document.createElement("li");
+        li.className = "activity-item";
 
-    function buildChart() {
-      const ctx = document.getElementById('progressChart');
-      const sorted = [...runs].sort((a, b) => new Date(a.date) - new Date(b.date));
-      const labels = sorted.map(r => r.date);
-      const paceData = sorted.map(r => Number((r.paceSeconds / 60).toFixed(2)));
-      const distanceData = sorted.map(r => Number(r.distance.toFixed(2)));
+        const title = document.createElement("h3");
+        title.textContent = activity.name || "Untitled activity";
 
-      if (chart) chart.destroy();
-      if (!runs.length) return;
+        const distanceLine = typeof activity.distanceMiles === "number"
+          ? `Distance: ${activity.distanceMiles.toFixed(2)} miles`
+          : "Distance: —";
+        const timeLine = typeof activity.movingTimeSec === "number"
+          ? `Time: ${formatDuration(activity.movingTimeSec)}`
+          : "Time: —";
+        const dateLine = activity.startDate
+          ? `Date: ${new Date(activity.startDate).toLocaleDateString()}`
+          : "Date: —";
 
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Pace (min/mi)',
-              data: paceData,
-              borderColor: varColor('--accent'),
-              backgroundColor: 'rgba(76, 194, 255, 0.15)',
-              tension: 0.3,
-              yAxisID: 'y'
-            },
-            {
-              label: 'Distance (mi)',
-              data: distanceData,
-              borderColor: varColor('--accent-2'),
-              backgroundColor: 'rgba(120, 245, 197, 0.15)',
-              tension: 0.3,
-              yAxisID: 'y1'
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { labels: { color: '#dbe3ef' } },
-            tooltip: {
-              callbacks: {
-                label(context) {
-                  if (context.dataset.label.includes('Pace')) {
-                    return `${context.dataset.label}: ${formatPace(Number(context.raw) * 60)}`;
-                  }
-                  return `${context.dataset.label}: ${Number(context.raw).toFixed(1)} mi`;
-                }
-              }
-            }
-          },
-          scales: {
-            x: {
-              ticks: { color: '#dbe3ef' },
-              grid: { color: 'rgba(255,255,255,0.05)' }
-            },
-            y: {
-              type: 'linear',
-              position: 'left',
-              ticks: { color: '#dbe3ef' },
-              grid: { color: 'rgba(255,255,255,0.05)' }
-            },
-            y1: {
-              type: 'linear',
-              position: 'right',
-              ticks: { color: '#dbe3ef' },
-              grid: { drawOnChartArea: false },
-              suggestedMin: 0
-            }
-          }
+        const meta = document.createElement("p");
+        meta.className = "activity-meta";
+        meta.textContent = `${distanceLine} • ${timeLine} • ${dateLine}`;
+        li.appendChild(title);
+        li.appendChild(meta);
+
+        const extras = [];
+        if (activity.type) extras.push(activity.type);
+        if (typeof activity.paceSecondsPerMile === "number") {
+          extras.push(`Pace: ${activity.paceSecondsPerMile}s/mi`;
         }
+        if (typeof activity.averageHeartrate === "number") {
+          extras.push(`HR: ${activity.averageHeartrate} bpm`);
+        }
+
+        if (extras.length) {
+          const extraLine = document.createElement("p");
+          extraLine.className = "activity-meta";
+          extraLine.textContent = extras.join(" • ");
+          li.appendChild(extraLine);
+        }
+
+        list.appendChild(li);
       });
+
+      activitiesEl.innerHTML = "";
+      activitiesEl.appendChild(list);
     }
 
-    function varColor(name) {
-      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    async function fetchActivities() {
+      setStatus("Fetching activities from Strava…");
+      try {
+        const response = await fetch(STRAVA_ACTIVITIES_URL);
+
+        if (response.status === 401) {
+          setStatus("Not connected to Strava.");
+          setButtonLabel("Connect Strava");
+          activitiesEl.textContent = "No activities loaded yet.";
+          activitiesEl.className = "muted";
+          return;
+        }
+
+        if (!response.ok) {
+          setStatus("Unable to load Strava activities. Please try again.", "error");
+          console.error("Error loading Strava activities:", response.status, response.statusText);
+          activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
+          activitiesEl.className = "muted";
+          return;
+        }
+
+        const data = await response.json();
+        console.log("Strava activities:", Array.isArray(data) ? data.length : 0, Array.isArray(data) && data[0]);
+        renderActivities(data);
+        setStatus("Activities loaded from Strava.");
+        setButtonLabel("Reconnect Strava");
+      } catch (error) {
+        console.error("Failed to load Strava activities", error);
+        setStatus("Unable to load Strava activities. Please try again.", "error");
+        activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
+        activitiesEl.className = "muted";
+      }
     }
 
-    runForm.addEventListener('submit', event => {
-      event.preventDefault();
-      const date = document.getElementById('run-date').value;
-      const distance = parseFloat(document.getElementById('run-distance').value);
-      const duration = document.getElementById('run-duration').value;
-      const effort = parseInt(document.getElementById('run-effort').value, 10);
-
-      if (!date || !distance || !duration) return;
-      const seconds = parseDurationToSeconds(duration);
-      if (!seconds) {
-        alert('Please enter a duration in hh:mm:ss format.');
-        return;
-      }
-      if (distance <= 0) {
-        alert('Please enter a distance greater than 0.');
-        return;
-      }
-
-      const newRun = addPaceToRun({ date, distance, duration, effort });
-      runs.push(newRun);
-      runForm.reset();
-      refreshUI();
+    connectBtn.addEventListener("click", () => {
+      window.location.href = STRAVA_AUTH_URL;
     });
 
-    function refreshUI() {
-      renderRuns();
-      updateStats();
-      buildChart();
-    }
-
-    // Initialize with blank state
-    refreshUI();
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchActivities();
+    });
   </script>
+
+  <!-- PWA service worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .register('sw.js')
+          .then(reg => console.log('Service worker registered:', reg.scope))
+          .catch(err => console.error('Service worker registration failed:', err));
+      });
+    }
+  </script>
+  <!-- end PWA script -->
+
 </body>
 </html>
