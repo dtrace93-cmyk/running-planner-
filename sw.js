@@ -1,47 +1,42 @@
-// Minimal, safe service worker for Running Planner
-const CACHE_NAME = 'rp-static-v1';
-const OFFLINE_URL = 'index.html';
+const CACHE_NAME = "rp-static-v4";
 
-self.addEventListener('install', (event) => {
+const FILES_TO_CACHE = [
+  "/running-planner-/",
+  "/running-planner-/index.html",
+  "/running-planner-/RP16.html",
+  "/running-planner-/manifest.webmanifest",
+  "/running-planner-/sw.js",
+  "/running-planner-/icons/icon-192.png",
+  "/running-planner-/icons/icon-512.png",
+  "/running-planner-/index.js"
+];
+
+self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Only cache the main HTML shell for now
-      return cache.add(OFFLINE_URL);
+      return cache.addAll(FILES_TO_CACHE);
     })
   );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
       )
     )
   );
   self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  const url = new URL(request.url);
-
-  // Never mess with Strava API calls
-  if (url.pathname.includes('/strava')) {
-    return;
-  }
-
-  // For navigation requests (HTML pages)
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(OFFLINE_URL))
-    );
-    return;
-  }
-
-  // For everything else, just fall back to normal network behaviour
-  // (no aggressive caching of JS/CSS/images yet)
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((resp) => resp || fetch(event.request))
+  );
 });
