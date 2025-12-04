@@ -1,64 +1,47 @@
-const CACHE_NAME = 'rp-static-v3';
-const ASSET_CACHE = [
-  './',
-  'index.html',
-  'RP16.html',
-  'index.js',
-  'manifest.webmanifest',
-  'icons/icon-192.png',
-  'icons/icon-512.png'
-];
+// Minimal, safe service worker for Running Planner
+const CACHE_NAME = 'rp-static-v1';
+const OFFLINE_URL = 'index.html';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSET_CACHE))
+    caches.open(CACHE_NAME).then((cache) => {
+      // Only cache the main HTML shell for now
+      return cache.add(OFFLINE_URL);
+    })
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
     )
   );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
+  const request = event.request;
+  const url = new URL(request.url);
 
-  // Skip Strava API calls entirely
-  if (request.url.includes('/strava')) {
+  // Never mess with Strava API calls
+  if (url.pathname.includes('/strava')) {
     return;
   }
 
-  // Network-first for navigation/HTML
-  const acceptHeader = request.headers.get('accept') || '';
-  if (request.mode === 'navigate' || acceptHeader.includes('text/html')) {
+  // For navigation requests (HTML pages)
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => caches.match('index.html'))
+      fetch(request).catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
 
-  // Cache-first for other GET requests
-  if (request.method !== 'GET') return;
-
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response && response.status === 200) {
-          const respCopy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, respCopy));
-        }
-        return response;
-      });
-    })
-  );
+  // For everything else, just fall back to normal network behaviour
+  // (no aggressive caching of JS/CSS/images yet)
 });
