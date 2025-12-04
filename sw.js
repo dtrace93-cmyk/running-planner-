@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rp-cache-v1';
+const CACHE_NAME = 'rp-cache-v3';
 
 // Relative asset paths for GitHub Pages subdirectory hosting
 const CACHED_URLS = [
@@ -6,7 +6,9 @@ const CACHED_URLS = [
   'index.html',
   'RP16.html',
   'index.js',
-  'manifest.webmanifest'
+  'manifest.webmanifest',
+  'icons/icon-192.png',
+  'icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

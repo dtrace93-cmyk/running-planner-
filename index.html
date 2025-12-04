@@ -1,316 +1,742 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Running Planner – Strava Sync</title>
-
-  <!-- PWA additions -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Running Planner</title>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#000000">
-  <!-- end PWA additions -->
-
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
-      --bg: #0f1116;
-      --panel: #161a22;
-      --accent: #6ab0ff;
-      --text: #e6e8ec;
-      --muted: #9aa0ad;
-      --danger: #e57373;
-      --border: #1f2430;
+      color-scheme: dark;
+      --bg: #0f1115;
+      --panel: #181c23;
+      --text: #e8ecf1;
+      --muted: #a8b3c4;
+      --accent: #4cc2ff;
+      --accent-2: #78f5c5;
+      --border: #262b35;
     }
+
     * {
       box-sizing: border-box;
     }
+
     body {
       margin: 0;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
     }
-    header {
+
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .top-nav {
       position: sticky;
       top: 0;
-      z-index: 10;
-      background: rgba(15, 17, 22, 0.92);
-      backdrop-filter: blur(6px);
+      z-index: 5;
+      background: #0c0e13;
       border-bottom: 1px solid var(--border);
-      padding: 16px 24px;
+      padding: 12px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
     }
-    h1 {
-      margin: 0;
-      font-size: 20px;
-      letter-spacing: 0.2px;
+
+    .brand {
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      font-size: 1.1rem;
     }
-    main {
-      max-width: 960px;
-      margin: 24px auto 64px;
-      padding: 0 16px;
-    }
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    }
-    .card h2 {
-      margin-top: 0;
-      margin-bottom: 8px;
-      font-size: 18px;
-    }
-    .muted {
-      color: var(--muted);
-      font-size: 14px;
-      margin-top: 0;
-    }
-    button {
-      background: var(--accent);
-      color: #0b1220;
-      border: none;
-      border-radius: 10px;
-      padding: 12px 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s ease, transform 0.1s ease;
-    }
-    button:hover {
-      background: #82c1ff;
-    }
-    button:active {
-      transform: translateY(1px);
-    }
-    .actions {
+
+    .nav-links {
       display: flex;
-      gap: 12px;
       align-items: center;
+      gap: 8px;
       flex-wrap: wrap;
     }
 
-    .back-link {
-      color: var(--text);
-      text-decoration: none;
+    .nav-item {
       border: 1px solid var(--border);
+      background: #0c0e13;
+      color: var(--text);
       padding: 10px 12px;
       border-radius: 10px;
-      background: #0c111b;
       font-weight: 600;
-      transition: background 0.15s ease, border-color 0.15s ease;
+      text-decoration: none;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
 
-    .back-link:hover {
-      background: #111724;
-      border-color: #2a3240;
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--border);
     }
-    .status {
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: #1a202d;
-      border: 1px solid var(--border);
-      font-size: 14px;
+
+    .nav-item.active {
+      background: rgba(76, 194, 255, 0.15);
+      border-color: rgba(76, 194, 255, 0.55);
+      color: var(--text);
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .content-wrapper {
+      width: min(1200px, 100%);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .app-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .container {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+    }
+
+    p.lead {
+      margin: 0;
       color: var(--muted);
     }
-    pre {
-      background: #0c0f14;
+
+    section {
+      background: var(--panel);
       border: 1px solid var(--border);
-      padding: 12px;
-      border-radius: 10px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      margin: 0;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
     }
-    ul.activity-list {
-      list-style: none;
-      padding: 0;
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-header h2 {
       margin: 0;
+      font-size: 1.1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .grid {
       display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 12px;
     }
-    .activity-item {
-      padding: 12px;
+
+    .card {
+      background: linear-gradient(145deg, rgba(76, 194, 255, 0.08), rgba(120, 245, 197, 0.06));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .mini-card {
+      background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 10px;
-      background: #121722;
+      padding: 12px;
     }
-    .activity-item h3 {
-      margin: 0 0 6px;
-      font-size: 16px;
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
     }
-    .activity-meta {
+
+    .badge.warning { background: rgba(255, 193, 71, 0.15); border-color: rgba(255, 193, 71, 0.4); color: #ffd48a; }
+    .badge.info { background: rgba(76, 194, 255, 0.12); border-color: rgba(76, 194, 255, 0.5); color: #c8ebff; }
+    .badge.success { background: rgba(120, 245, 197, 0.12); border-color: rgba(120, 245, 197, 0.5); color: #d0ffe9; }
+    .badge.danger { background: rgba(255, 99, 132, 0.15); border-color: rgba(255, 99, 132, 0.5); color: #ffc2d1; }
+
+    .table-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #0b0d11;
+    }
+
+    .type-race { background: #ff8fa3; }
+    .type-long { background: #9cd67d; }
+    .type-tempo { background: #f6c560; }
+    .type-progression { background: #6ed5ff; }
+    .type-interval { background: #c29cff; }
+    .type-recovery { background: #7ddad9; }
+    .type-easy { background: #c5d0ff; }
+    .type-general { background: #d7e2f5; }
+
+    .status-missed { color: #ffb3b3; }
+    .status-ill { color: #ffcfa8; }
+    .status-injury { color: #ffdf8a; }
+    .status-recovery { color: #c8ebff; }
+
+    .risk-row { background: rgba(255, 99, 132, 0.06); }
+
+    .flag-chip {
+      display: inline-block;
+      padding: 2px 6px;
+      margin: 2px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      background: rgba(255, 193, 71, 0.15);
+      border: 1px solid rgba(255, 193, 71, 0.4);
+      color: #ffd48a;
+    }
+
+    .stat-label {
       color: var(--muted);
-      font-size: 13px;
-      margin: 0;
-      line-height: 1.5;
+      font-size: 0.9rem;
     }
-    @media (max-width: 640px) {
-      header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-      main {
-        margin-top: 16px;
-      }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .inline-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+      margin-top: 12px;
+    }
+
+    .inline-controls label {
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .file-upload {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .helper-text {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.9rem;
+      color: var(--muted);
+      gap: 6px;
+    }
+
+    input, button, select {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #11141a;
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    input:focus, button:focus, select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    button {
+      cursor: pointer;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #0b0d11;
+      font-weight: 700;
+      border: none;
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(76, 194, 255, 0.35);
+    }
+
+    /* Navigation buttons */
+    .nav-item {
+      box-shadow: none;
+      transform: none;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      min-height: 280px;
+    }
+
+    .log-table {
+      margin-top: 14px;
+      overflow-x: auto;
+    }
+
+    @media (max-width: 900px) {
+      .main-content { padding: 16px; }
+      .nav-links { width: 100%; }
+    }
+
+    @media (max-width: 600px) {
+      th, td { padding: 8px; }
+      .nav-links { gap: 6px; }
     }
   </style>
-</head>
+ </head>
 <body>
-  <header>
-    <h1>Running Planner – Strava Sync</h1>
-    <div class="actions">
-      <a class="back-link" href="index.html">Back to Planner</a>
-      <button id="connect-strava">Connect Strava</button>
-      <div id="status" class="status">Waiting to connect…</div>
-    </div>
-  </header>
-  <main>
-    <section class="card">
-      <h2>Synced Strava Activities</h2>
-      <p class="muted">Connect to import your latest Strava activities from the API.</p>
-      <div id="activities" class="muted">No activities loaded yet.</div>
-    </section>
-  </main>
-  <script>
-    const STRAVA_AUTH_URL = "https://probable-goggles-jjv4qj56xvqjh5wxv-4000.app.github.dev/auth/strava";
-    const STRAVA_ACTIVITIES_URL = "https://probable-goggles-jjv4qj56xvqjh5wxv-4000.app.github.dev/api/strava/activities";
+  <div class="app-shell">
+    <header class="top-nav">
+      <div class="brand">Running Planner</div>
+      <nav class="nav-links">
+        <a class="nav-item sidebar-nav-item" data-section="dashboard-section" href="#dashboard-section">Dashboard</a>
+        <a class="nav-item sidebar-nav-item" data-section="plan-section" href="#plan-section">Training</a>
+        <a class="nav-item sidebar-nav-item" data-section="charts-section" href="#charts-section">Charts</a>
+        <a class="nav-item sidebar-nav-item" data-section="notes-section" href="#notes-section">Notes</a>
+        <a class="nav-item sidebar-nav-item" data-section="settings-section" href="#settings-section">Settings</a>
+        <a class="nav-item" href="RP16.html">Strava Sync</a>
+      </nav>
+    </header>
+    <main class="main-content">
+      <header>
+        <h1>Running Planner</h1>
+        <p class="lead">Map your training plan, log runs, and watch progress in real-time.</p>
+      </header>
+      <div class="content-wrapper container">
+        <div id="dashboard-section" class="app-section">
+          <section>
+            <div class="section-header">
+              <h2>Latest Strava Run</h2>
+              <span class="stat-label">Fetched from your connected Strava account</span>
+            </div>
+            <div class="mini-card" id="strava-summary">Loading latest Strava run…</div>
+          </section>
 
-    const statusEl = document.getElementById("status");
-    const activitiesEl = document.getElementById("activities");
-    const connectBtn = document.getElementById("connect-strava");
+          <section>
+            <div class="section-header">
+              <h2>Run Summary</h2>
+              <span class="stat-label">Stats update as you log runs</span>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <div class="stat-label">Total Planned Distance</div>
+                <div class="stat-value" id="total-distance">0 mi</div>
+              </div>
+              <div class="card">
+                <div class="stat-label">Total Completed Distance</div>
+                <div class="stat-value" id="avg-weekly">0 mi</div>
+              </div>
+              <div class="card">
+                <div class="stat-label">Fastest Pace (completed)</div>
+                <div class="stat-value" id="fastest-pace">–</div>
+              </div>
+              <div class="card">
+                <div class="stat-label">Longest Planned Run</div>
+                <div class="stat-value" id="longest-run">–</div>
+              </div>
+            </div>
+          </section>
 
-    function setStatus(message, variant = "info") {
-      statusEl.textContent = message;
-      statusEl.style.color = variant === "error" ? "var(--danger)" : "var(--muted)";
-    }
+          <section>
+            <div class="section-header">
+              <h2>Weekly Summary</h2>
+              <span class="stat-label">Mileage balance and progression</span>
+            </div>
+            <div class="grid" id="weekly-summary-grid"></div>
+            <div class="grid" style="grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-top: 12px;">
+              <div class="mini-card">
+                <h3 style="margin: 0 0 8px; font-size: 1rem;">All Weeks</h3>
+                <div class="log-table" style="margin: 0;">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Week</th>
+                        <th>Planned (mi)</th>
+                        <th>Completed (mi)</th>
+                        <th>Load</th>
+                        <th>% Completed</th>
+                        <th>Diff</th>
+                      </tr>
+                    </thead>
+                    <tbody id="weekly-summary-rows"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="mini-card">
+                <h3 style="margin: 0 0 8px; font-size: 1rem;">Session Status</h3>
+                <div id="session-status"></div>
+              </div>
+              <div class="mini-card">
+                <h3 style="margin: 0 0 8px; font-size: 1rem;">Training Load</h3>
+                <div class="stat-label">Acute (7d)</div>
+                <div class="stat-value" id="acute-load">–</div>
+                <div class="stat-label" style="margin-top:6px;">Chronic (4-week avg)</div>
+                <div class="stat-value" id="chronic-load">–</div>
+                <p class="helper-text" style="margin:6px 0 4px;">Ratio: <span id="load-ratio">–</span></p>
+                <p class="helper-text">Risk: <span id="load-risk" class="badge">–</span></p>
+              </div>
+            </div>
+          </section>
 
-    function setButtonLabel(label) {
-      connectBtn.textContent = label;
-    }
+          <section>
+            <div class="section-header">
+              <h2>Trends</h2>
+              <span class="stat-label">Key indicators at a glance</span>
+            </div>
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+              <div class="mini-card">
+                <h3 style="margin:0 0 8px; font-size: 1rem;">HR Trend</h3>
+                <div class="stat-label">Overall avg</div>
+                <div class="stat-value" id="hr-overall">–</div>
+                <p class="helper-text" id="hr-halves">First half: – | Second half: –</p>
+                <p class="helper-text" id="hr-trend">Not enough data yet</p>
+              </div>
+              <div class="mini-card">
+                <h3 style="margin:0 0 8px; font-size: 1rem;">Pace Trend</h3>
+                <div class="stat-label">Overall avg</div>
+                <div class="stat-value" id="pace-overall">–</div>
+                <p class="helper-text" id="pace-halves">First half: – | Second half: –</p>
+                <p class="helper-text" id="pace-fastest">Fastest: –</p>
+                <p class="helper-text" id="pace-trend">Not enough data yet</p>
+              </div>
+              <div class="mini-card">
+                <h3 style="margin:0 0 8px; font-size: 1rem;">Weekly Distance</h3>
+                <div class="stat-label">Avg completed</div>
+                <div class="stat-value" id="weekly-avg">–</div>
+                <p class="helper-text" id="weekly-max">Max week: –</p>
+                <p class="helper-text" id="weekly-jumps">Weeks with &gt;25% jump: –</p>
+              </div>
+              <div class="mini-card">
+                <h3 style="margin:0 0 8px; font-size: 1rem;">Fatigue Days</h3>
+                <div class="stat-label">Total tagged</div>
+                <div class="stat-value" id="fatigue-total">–</div>
+                <p class="helper-text" id="fatigue-top">Top week: –</p>
+                <p class="helper-text" id="fatigue-note">Not enough data yet</p>
+              </div>
+              <div class="mini-card">
+                <h3 style="margin:0 0 8px; font-size: 1rem;">Morning vs Evening</h3>
+                <div class="stat-label">Morning vs Evening runs</div>
+                <div class="stat-value" id="tod-counts">–</div>
+                <p class="helper-text" id="tod-paces">Morning pace: – · Evening pace: –</p>
+                <p class="helper-text" id="tod-note">Not enough data yet</p>
+              </div>
+            </div>
+            <p class="helper-text" id="weather-summary" style="margin-top: 8px;"></p>
+          </section>
+        </div>
 
-    function formatDuration(seconds) {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.round(seconds % 60);
-      return `${mins}m ${secs}s`;
-    }
+        <div id="plan-section" class="app-section">
+          <section>
+            <div class="section-header">
+              <h2>Upload Marathon Plan (CSV)</h2>
+              <span class="stat-label">Bring in your exported training schedule</span>
+            </div>
+            <div class="file-upload">
+              <label>
+                Upload marathon plan (CSV)
+                <input type="file" id="plan-csv-upload" accept=".csv,text/csv">
+              </label>
+              <p class="helper-text">Export your spreadsheet as CSV with columns: Week, Date, Distance, Results (distance, Avg hr, Avg pace), notes.</p>
+              <p class="helper-text" id="plan-upload-message"></p>
+            </div>
+          </section>
 
-    function renderActivities(data) {
-      if (!Array.isArray(data) || data.length === 0) {
-        activitiesEl.textContent = "No activities found from Strava.";
-        activitiesEl.className = "muted";
-        return;
-      }
+          <section>
+            <div class="section-header">
+              <h2>Data & Backup</h2>
+              <span class="stat-label">Import/export your session data</span>
+            </div>
+            <div class="inline-controls">
+              <button type="button" id="export-json">Export JSON</button>
+              <label style="margin:0;">
+                Import JSON
+                <input type="file" id="import-json" accept="application/json,.json">
+              </label>
+              <p class="helper-text" style="margin:0;">Exports include all runs in this browser. Imports replace current data.</p>
+            </div>
+          </section>
 
-      const list = document.createElement("ul");
-      list.className = "activity-list";
+          <section>
+            <div class="section-header">
+              <h2>Training Plan</h2>
+              <span class="stat-label">Upcoming key sessions</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  <th>Date</th>
+                  <th>Distance (planned)</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="plan-body">
+                <tr>
+                  <td colspan="4" style="text-align:center; color: var(--muted);">Add your training sessions here</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="inline-controls" id="plan-form">
+              <label>
+                Week label
+                <input type="text" id="plan-week" placeholder="Week 1 (Aug 1-7)">
+              </label>
+              <label>
+                Date
+                <input type="text" id="plan-date" placeholder="Sun Aug 17">
+              </label>
+              <label>
+                Distance (planned)
+                <input type="text" id="plan-distance" placeholder="6 mi Zone 2">
+              </label>
+              <label>
+                Notes
+                <input type="text" id="plan-notes" placeholder="Easy aerobic run">
+              </label>
+              <button type="button" id="add-plan">Add Session</button>
+            </div>
+          </section>
 
-      data.forEach((activity) => {
-        const li = document.createElement("li");
-        li.className = "activity-item";
+          <section>
+            <div class="section-header">
+              <h2>Upload Run Data</h2>
+              <span class="stat-label">Import Excel files to backfill your history</span>
+            </div>
+            <div class="file-upload">
+              <label>
+                Upload new running data (Excel)
+                <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+              </label>
+              <label>
+                Upload previous running history (Excel)
+                <input type="file" id="excel-history-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+              </label>
+              <p class="helper-text">Expected columns (case-insensitive): Week (optional), Date, Distance, Results (distance, Average hr, Average pace), Notes. Duration/Type/Effort/HR/Temp are also parsed when present.</p>
+            </div>
+          </section>
 
-        const title = document.createElement("h3");
-        title.textContent = activity.name || "Untitled activity";
+          <section>
+            <div class="section-header">
+              <h2>Log a Run</h2>
+              <span class="stat-label">Add completed runs to keep stats fresh</span>
+            </div>
+            <form id="run-form">
+              <label>
+                Date
+                <input type="date" id="run-date" required>
+              </label>
+              <label>
+                Distance (miles)
+                <input type="number" step="0.1" min="0" id="run-distance" required>
+              </label>
+              <label>
+                Type of run
+                <select id="run-type" required>
+                  <option value="" disabled selected>Select type</option>
+                  <option>Zone 2</option>
+                  <option>Zone 3</option>
+                  <option>Threshold</option>
+                  <option>Intervals</option>
+                </select>
+              </label>
+              <label>
+                Average HR
+                <input type="number" min="0" id="run-hr" placeholder="140" required>
+              </label>
+              <label>
+                Effort (1–10)
+                <input type="number" min="1" max="10" id="run-effort" value="5" required>
+              </label>
+              <label>
+                Temperature (°C)
+                <input type="number" step="0.1" id="run-temp" placeholder="18" required>
+              </label>
+              <label>
+                Weather
+                <select id="run-weather">
+                  <option value="">—</option>
+                  <option value="Cool">Cool</option>
+                  <option value="Warm">Warm</option>
+                  <option value="Hot">Hot</option>
+                  <option value="Humid">Humid</option>
+                  <option value="Windy">Windy</option>
+                </select>
+              </label>
+              <label>
+                Time of Day
+                <select id="run-time-of-day">
+                  <option value="Morning" selected>Morning</option>
+                  <option value="Afternoon">Afternoon</option>
+                  <option value="Evening">Evening</option>
+                  <option value="Night">Night</option>
+                  <option value="Unknown">Unknown</option>
+                </select>
+              </label>
+              <label>
+                Duration (hh:mm:ss, optional for pace)
+                <input type="time" step="1" placeholder="00:45:00" id="run-duration">
+              </label>
+              <button type="submit">Add Run</button>
+            </form>
+            <div class="log-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Planned (mi)</th>
+                    <th>Completed (mi)</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Avg HR</th>
+                    <th>Effort</th>
+                    <th>Load</th>
+                    <th>Temp / Weather</th>
+                    <th>Time of Day</th>
+                    <th>Duration</th>
+                    <th>Pace (min/mi)</th>
+                    <th>Result / Notes</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="run-log"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
 
-        const distanceLine = typeof activity.distanceMiles === "number"
-          ? `Distance: ${activity.distanceMiles.toFixed(2)} miles`
-          : "Distance: —";
-        const timeLine = typeof activity.movingTimeSec === "number"
-          ? `Time: ${formatDuration(activity.movingTimeSec)}`
-          : "Time: —";
-        const dateLine = activity.startDate
-          ? `Date: ${new Date(activity.startDate).toLocaleDateString()}`
-          : "Date: —";
+        <div id="charts-section" class="app-section">
+          <section>
+            <div class="section-header">
+              <h2>Progress</h2>
+              <span class="stat-label">Pace and distance over time</span>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="progressChart"></canvas>
+            </div>
+          </section>
+        </div>
 
-        const meta = document.createElement("p");
-        meta.className = "activity-meta";
-        meta.textContent = `${distanceLine} • ${timeLine} • ${dateLine}`;
-        li.appendChild(title);
-        li.appendChild(meta);
+        <div id="notes-section" class="app-section">
+          <section>
+            <div class="section-header">
+              <h2>Insights</h2>
+              <span class="stat-label">Coach-style notes</span>
+            </div>
+            <div class="mini-card" id="insights-card">
+              <ul id="insights-list" style="margin:0; padding-left: 18px; display:flex; flex-direction:column; gap:6px;"></ul>
+            </div>
+          </section>
+          <section>
+            <div class="section-header">
+              <h2>Personal Notes</h2>
+              <span class="stat-label">Jot down reminders or plans</span>
+            </div>
+            <div class="mini-card">
+              <label style="margin:0; gap:8px;">
+                <span>Notes (saved locally)</span>
+                <textarea id="user-notes" rows="4" style="width:100%; resize: vertical; padding:10px; border-radius:10px; background:#11141a; color:var(--text); border:1px solid var(--border);"></textarea>
+              </label>
+            </div>
+          </section>
+        </div>
 
-        const extras = [];
-        if (activity.type) extras.push(activity.type);
-        if (typeof activity.paceSecondsPerMile === "number") {
-          extras.push(`Pace: ${activity.paceSecondsPerMile}s/mi`;
-        }
-        if (typeof activity.averageHeartrate === "number") {
-          extras.push(`HR: ${activity.averageHeartrate} bpm`);
-        }
+        <div id="settings-section" class="app-section">
+          <section>
+            <div class="section-header">
+              <h2>Settings</h2>
+              <span class="stat-label">Data management</span>
+            </div>
+            <div class="inline-controls">
+              <button id="clear-data" style="background: rgba(255,99,132,0.12); color: #ffc2d1; border: 1px solid rgba(255,99,132,0.4); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-weight: 600;">Clear all data</button>
+              <button type="button" id="export-json-settings">Export JSON</button>
+              <label style="margin:0;">
+                Import JSON
+                <input type="file" id="import-json-settings" accept="application/json,.json">
+              </label>
+            </div>
+            <p class="helper-text" style="margin:6px 0 0;">These controls manage data stored in your browser only.</p>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+    <script src="index.js"></script>
 
-        if (extras.length) {
-          const extraLine = document.createElement("p");
-          extraLine.className = "activity-meta";
-          extraLine.textContent = extras.join(" • ");
-          li.appendChild(extraLine);
-        }
-
-        list.appendChild(li);
-      });
-
-      activitiesEl.innerHTML = "";
-      activitiesEl.appendChild(list);
-    }
-
-    async function fetchActivities() {
-      setStatus("Fetching activities from Strava…");
-      try {
-        const response = await fetch(STRAVA_ACTIVITIES_URL);
-
-        if (response.status === 401) {
-          setStatus("Not connected to Strava.");
-          setButtonLabel("Connect Strava");
-          activitiesEl.textContent = "No activities loaded yet.";
-          activitiesEl.className = "muted";
-          return;
-        }
-
-        if (!response.ok) {
-          setStatus("Unable to load Strava activities. Please try again.", "error");
-          console.error("Error loading Strava activities:", response.status, response.statusText);
-          activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
-          activitiesEl.className = "muted";
-          return;
-        }
-
-        const data = await response.json();
-        console.log("Strava activities:", Array.isArray(data) ? data.length : 0, Array.isArray(data) && data[0]);
-        renderActivities(data);
-        setStatus("Activities loaded from Strava.");
-        setButtonLabel("Reconnect Strava");
-      } catch (error) {
-        console.error("Failed to load Strava activities", error);
-        setStatus("Unable to load Strava activities. Please try again.", "error");
-        activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
-        activitiesEl.className = "muted";
-      }
-    }
-
-    connectBtn.addEventListener("click", () => {
-      window.location.href = STRAVA_AUTH_URL;
-    });
-
-    document.addEventListener("DOMContentLoaded", () => {
-      fetchActivities();
-    });
-  </script>
-
-  <!-- PWA service worker registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
         navigator.serviceWorker
           .register('sw.js')
-          .then(reg => console.log('Service worker registered:', reg.scope))
-          .catch(err => console.error('Service worker registration failed:', err));
-      });
-    }
-  </script>
-  <!-- end PWA script -->
-
+        .then(reg => console.log('Service worker registered:', reg.scope))
+        .catch(err => console.error('Service worker registration failed:', err));
+    });
+  }
+</script>
 </body>
 </html>
