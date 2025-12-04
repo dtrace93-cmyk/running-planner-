@@ -357,6 +357,76 @@
       th, td { padding: 8px; }
       .nav-links { gap: 6px; }
     }
+    /* ---------- Mobile app-style layout tweaks ---------- */
+
+@media (max-width: 768px) {
+  body {
+    padding: 0 12px 72px; /* space at bottom for thumbs + future bottom nav */
+  }
+
+  header {
+    padding: 10px 0 4px;
+  }
+
+  header h1 {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  /* Container that holds "Dashboard / Training / Charts / Notes / Settings / Strava Sync" */
+  .tab-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 4px 0 8px;
+    margin-bottom: 4px;
+  }
+
+  /* Hide scroll bar but keep scrollable */
+  .tab-buttons::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Individual tab buttons */
+  .tab-buttons button {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 999px;
+    min-width: 90px;
+  }
+
+  /* Cards: make them tighter on mobile */
+  .card {
+    padding: 14px 12px;
+    margin-bottom: 10px;
+  }
+
+  .card h2 {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .muted {
+    font-size: 13px;
+  }
+
+  /* Summary stat tiles */
+  .summary-grid {
+    gap: 8px;
+  }
+
+  .summary-tile {
+    padding: 10px;
+  }
+
+  /* Progress chart area: less tall on mobile */
+  .progress-chart {
+    min-height: 180px;
+  }
+}
+
   </style>
  </head>
 <body>
