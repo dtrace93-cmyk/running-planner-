@@ -357,76 +357,93 @@
       th, td { padding: 8px; }
       .nav-links { gap: 6px; }
     }
-    /* ---------- Mobile app-style layout tweaks ---------- */
-
+/* ---------- Mobile app-style layout tweaks (real classes) ---------- */
 @media (max-width: 768px) {
   body {
-    padding: 0 12px 72px; /* space at bottom for thumbs + future bottom nav */
+    padding: 0 0 72px; /* keep bottom space for thumbs / future bottom nav */
   }
 
-  header {
-    padding: 10px 0 4px;
+  .main-content {
+    padding: 12px;
   }
 
-  header h1 {
-    font-size: 20px;
-    margin-bottom: 4px;
-  }
-
-  /* Container that holds "Dashboard / Training / Charts / Notes / Settings / Strava Sync" */
-  .tab-buttons {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
+  /* Top nav behaves like a compact app bar */
+  .top-nav {
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    align-items: flex-start;
     gap: 8px;
-    padding: 4px 0 8px;
-    margin-bottom: 4px;
   }
 
-  /* Hide scroll bar but keep scrollable */
-  .tab-buttons::-webkit-scrollbar {
+  .brand {
+    font-size: 18px;
+  }
+
+  /* This is your “Dashboard / Training / Charts / Notes / Settings / Strava Sync” row */
+  .nav-links {
+    width: 100%;
+    display: flex;
+    flex-wrap: nowrap;       /* force a single row */
+    overflow-x: auto;        /* allow swipe left/right */
+    gap: 6px;
+    padding: 4px 0 6px;
+    margin: 0 -10px 2px;     /* stretch to screen edges */
+    padding-inline: 10px;
+  }
+
+  .nav-links::-webkit-scrollbar {
     display: none;
   }
 
-  /* Individual tab buttons */
-  .tab-buttons button {
-    flex: 0 0 auto;
-    padding: 8px 12px;
+  .nav-item {
+    flex: 0 0 auto;          /* pill buttons that scroll */
+    padding: 7px 12px;
     font-size: 13px;
     border-radius: 999px;
-    min-width: 90px;
+    white-space: nowrap;
   }
 
-  /* Cards: make them tighter on mobile */
-  .card {
-    padding: 14px 12px;
-    margin-bottom: 10px;
+  /* Inside the page */
+  main header {
+    margin-bottom: 8px;
   }
 
-  .card h2 {
-    font-size: 16px;
+  main header h1 {
+    font-size: 22px;
     margin-bottom: 4px;
   }
 
-  .muted {
-    font-size: 13px;
+  section {
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
   }
 
-  /* Summary stat tiles */
-  .summary-grid {
+  .grid {
     gap: 8px;
   }
 
-  .summary-tile {
+  .card {
     padding: 10px;
   }
 
-  /* Progress chart area: less tall on mobile */
-  .progress-chart {
-    min-height: 180px;
+  .mini-card {
+    padding: 10px;
+  }
+
+  .helper-text,
+  .stat-label {
+    font-size: 0.85rem;
+  }
+
+  table {
+    font-size: 0.85rem;
+  }
+
+  th, td {
+    padding: 6px;
   }
 }
-
   </style>
  </head>
 <body>
