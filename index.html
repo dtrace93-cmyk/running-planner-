@@ -228,7 +228,9 @@
 
     .section-log-run,
     .section-training-log,
-    .section-upload {
+    .section-upload,
+    .section-upload-runs,
+    .section-training-plan {
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -249,6 +251,11 @@
       gap: 8px;
     }
 
+    .field {
+      display: flex;
+      flex-direction: column;
+    }
+
     .field label {
       display: block;
       font-size: 0.75rem;
@@ -259,6 +266,7 @@
     .field input,
     .field select {
       width: 100%;
+      height: 40px;
     }
 
     .table-wrapper {
@@ -266,7 +274,7 @@
     }
 
     .training-log-card table {
-      width: 100%;
+      width: max(100%, 900px);
       table-layout: fixed;
       border-collapse: collapse;
     }
@@ -278,42 +286,27 @@
       text-align: left;
     }
 
-    .training-log-card th.hidden-col,
-    .training-log-card td:nth-child(2),
-    .training-log-card td:nth-child(5),
-    .training-log-card td:nth-child(6),
-    .training-log-card td:nth-child(9),
-    .training-log-card td:nth-child(10),
-    .training-log-card td:nth-child(11),
-    .training-log-card td:nth-child(13),
-    .training-log-card td:nth-child(14),
-    .training-log-card td:nth-child(15) {
-      display: none;
-    }
-
-    .section-upload {
-      margin-top: 8px;
-    }
-
-    .upload-card {
+    .section-upload-runs {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    .upload-text {
-      font-size: 0.9rem;
-      opacity: 0.8;
+    .card.upload-runs-card {
+      background: var(--panel);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 12px;
     }
 
-    .upload-card form {
+    .upload-runs-card form {
       display: flex;
       gap: 8px;
       align-items: center;
       flex-wrap: wrap;
     }
 
-    .secondary-button.small {
+    .primary-button.small {
       padding: 6px 10px;
       font-size: 0.8rem;
     }
@@ -519,6 +512,20 @@
     .log-table {
       margin-top: 14px;
       overflow-x: auto;
+    }
+
+    .training-plan-wrapper {
+      overflow-x: auto;
+    }
+
+    .training-plan-card table {
+      width: max(100%, 800px);
+      table-layout: fixed;
+      border-collapse: collapse;
+    }
+
+    #run-form {
+      display: block;
     }
 
     .sidebar-overlay {
@@ -882,20 +889,20 @@
                     <thead>
                       <tr>
                         <th>Week</th>
-                        <th class="hidden-col">Planned (mi)</th>
+                        <th>Planned (mi)</th>
                         <th>Distance</th>
                         <th>Type</th>
-                        <th class="hidden-col">Source</th>
-                        <th class="hidden-col">Status</th>
+                        <th>Source</th>
+                        <th>Status</th>
                         <th>Avg HR</th>
                         <th>Effort</th>
-                        <th class="hidden-col">Load</th>
-                        <th class="hidden-col">Temp / Weather</th>
-                        <th class="hidden-col">Time of Day</th>
+                        <th>Load</th>
+                        <th>Temp / Weather</th>
+                        <th>Time of Day</th>
                         <th>Time</th>
-                        <th class="hidden-col">Pace (min/mi)</th>
-                        <th class="hidden-col">Result / Notes</th>
-                        <th class="hidden-col">Actions</th>
+                        <th>Pace (min/mi)</th>
+                        <th>Result / Notes</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody id="run-log"></tbody>
@@ -904,82 +911,59 @@
               </div>
             </section>
 
-            <section class="section-upload">
-              <div class="card upload-card">
-                <div class="upload-text">Upload runs</div>
+            <section class="section-upload-runs">
+              <div class="card upload-runs-card">
+                <h2 class="section-title">Upload runs</h2>
                 <form id="plan-upload-form">
                   <input type="file" id="plan-csv-upload" accept=".csv,text/csv">
-                  <button type="button" class="secondary-button small">Upload file</button>
+                  <button type="button" class="primary-button small">Upload file</button>
                   <span class="visually-hidden helper-text" id="plan-upload-message"></span>
                 </form>
-                <div class="visually-hidden">
-                  <div class="file-upload">
-                    <label>
-                      Upload new running data (Excel)
-                      <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
-                    </label>
-                    <label>
-                      Upload previous running history (Excel)
-                      <input type="file" id="excel-history-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
-                    </label>
-                  </div>
-                </div>
               </div>
             </section>
 
-            <section>
+            <section class="section-training-plan">
               <div class="section-header">
                 <h2>Training Plan</h2>
                 <span class="stat-label">Upcoming key sessions</span>
               </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Week</th>
-                    <th>Date</th>
-                    <th>Distance (planned)</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody id="plan-body">
-                  <tr>
-                    <td colspan="4" style="text-align:center; color: var(--muted);">Add your training sessions here</td>
-                  </tr>
-                </tbody>
-              </table>
-              <div class="inline-controls" id="plan-form" style="display:none;">
-                <label>
-                  Week label
-                  <input type="text" id="plan-week" placeholder="Week 1 (Aug 1-7)">
-                </label>
-                <label>
-                  Date
-                  <input type="text" id="plan-date" placeholder="Sun Aug 17">
-                </label>
-                <label>
-                  Distance (planned)
-                  <input type="text" id="plan-distance" placeholder="6 mi Zone 2">
-                </label>
-                <label>
-                  Notes
-                  <input type="text" id="plan-notes" placeholder="Easy aerobic run">
-                </label>
-                <button type="button" id="add-plan">Add Session</button>
-              </div>
-            </section>
-
-            <section class="visually-hidden">
-              <div class="section-header">
-                <h2>Data & Backup</h2>
-                <span class="stat-label">Import/export your session data</span>
-              </div>
-              <div class="inline-controls">
-                <button type="button" id="export-json">Export JSON</button>
-                <label style="margin:0;">
-                  Import JSON
-                  <input type="file" id="import-json" accept="application/json,.json">
-                </label>
-                <p class="helper-text" style="margin:0;">Exports include all runs in this browser. Imports replace current data.</p>
+              <div class="card training-plan-card">
+                <div class="table-wrapper training-plan-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Week</th>
+                        <th>Date</th>
+                        <th>Distance (planned)</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody id="plan-body">
+                      <tr>
+                        <td colspan="4" style="text-align:center; color: var(--muted);">Add your training sessions here</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="inline-controls" id="plan-form" style="display:none;">
+                  <label>
+                    Week label
+                    <input type="text" id="plan-week" placeholder="Week 1 (Aug 1-7)">
+                  </label>
+                  <label>
+                    Date
+                    <input type="text" id="plan-date" placeholder="Sun Aug 17">
+                  </label>
+                  <label>
+                    Distance (planned)
+                    <input type="text" id="plan-distance" placeholder="6 mi Zone 2">
+                  </label>
+                  <label>
+                    Notes
+                    <input type="text" id="plan-notes" placeholder="Easy aerobic run">
+                  </label>
+                  <button type="button" id="add-plan">Add Session</button>
+                </div>
               </div>
             </section>
           </main>
@@ -1040,6 +1024,13 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <div class="visually-hidden" aria-hidden="true">
+    <button type="button" id="export-json">Export JSON</button>
+    <input type="file" id="import-json" accept="application/json,.json">
+    <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+    <input type="file" id="excel-history-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
   </div>
     <script src="index.js"></script>
     <script>
