@@ -212,6 +212,108 @@
       font-weight: 600;
     }
 
+    .training-page {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .section-log-run,
+    .section-training-log,
+    .section-upload {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card.log-run-card,
+    .card.training-log-card,
+    .card.upload-card {
+      background: var(--panel);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 12px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      opacity: 0.7;
+      margin-bottom: 4px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    .training-log-card table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+    }
+
+    .training-log-card th,
+    .training-log-card td {
+      padding: 6px 4px;
+      font-size: 0.8rem;
+      text-align: left;
+    }
+
+    .training-log-card th.hidden-col,
+    .training-log-card td:nth-child(2),
+    .training-log-card td:nth-child(5),
+    .training-log-card td:nth-child(6),
+    .training-log-card td:nth-child(9),
+    .training-log-card td:nth-child(10),
+    .training-log-card td:nth-child(11),
+    .training-log-card td:nth-child(13),
+    .training-log-card td:nth-child(14),
+    .training-log-card td:nth-child(15) {
+      display: none;
+    }
+
+    .section-upload {
+      margin-top: 8px;
+    }
+
+    .upload-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .upload-text {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .upload-card form {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .secondary-button.small {
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+
     .section-header {
       display: flex;
       align-items: center;
@@ -490,6 +592,10 @@
         max-width: 960px;
       }
 
+      .training-page {
+        max-width: 960px;
+      }
+
       .grid {
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 12px;
@@ -497,6 +603,10 @@
 
       .summary-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .field-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
   </style>
@@ -691,183 +801,186 @@
         </div>
 
         <div id="plan-section" class="app-section">
-          <section>
-            <div class="section-header">
-              <h2>Upload Marathon Plan (CSV)</h2>
-              <span class="stat-label">Bring in your exported training schedule</span>
-            </div>
-            <div class="file-upload">
-              <label>
-                Upload marathon plan (CSV)
-                <input type="file" id="plan-csv-upload" accept=".csv,text/csv">
-              </label>
-              <p class="helper-text">Export your spreadsheet as CSV with columns: Week, Date, Distance, Results (distance, Avg hr, Avg pace), notes.</p>
-              <p class="helper-text" id="plan-upload-message"></p>
-            </div>
-          </section>
+          <main class="training-page">
+            <section class="section-log-run">
+              <div class="section-header">
+                <h1 class="section-title">Log run</h1>
+                <button type="submit" form="run-form" class="primary-button">Add Run</button>
+              </div>
+              <div class="card log-run-card">
+                <form id="run-form">
+                  <div class="field-grid">
+                    <div class="field">
+                      <label>Week</label>
+                      <input type="date" id="run-date" required>
+                    </div>
+                    <div class="field">
+                      <label>Distance (mi)</label>
+                      <input type="number" step="0.1" min="0" id="run-distance" required>
+                    </div>
+                    <div class="field">
+                      <label>Type</label>
+                      <select id="run-type" required>
+                        <option value="" disabled selected>Select type</option>
+                        <option>Zone 2</option>
+                        <option>Zone 3</option>
+                        <option>Threshold</option>
+                        <option>Intervals</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Effort</label>
+                      <input type="number" min="1" max="10" id="run-effort" value="5" required>
+                    </div>
+                    <div class="field">
+                      <label>Avg HR</label>
+                      <input type="number" min="0" id="run-hr" placeholder="140" required>
+                    </div>
+                    <div class="field">
+                      <label>Time (hh:mm)</label>
+                      <input type="time" step="1" placeholder="00:45:00" id="run-duration">
+                    </div>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field">
+                      <label>Temperature (°C)</label>
+                      <input type="number" step="0.1" id="run-temp" placeholder="18" required>
+                    </div>
+                    <div class="field">
+                      <label>Weather</label>
+                      <select id="run-weather">
+                        <option value="">—</option>
+                        <option value="Cool">Cool</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Hot">Hot</option>
+                        <option value="Humid">Humid</option>
+                        <option value="Windy">Windy</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Time of Day</label>
+                      <select id="run-time-of-day">
+                        <option value="Morning" selected>Morning</option>
+                        <option value="Afternoon">Afternoon</option>
+                        <option value="Evening">Evening</option>
+                        <option value="Night">Night</option>
+                        <option value="Unknown">Unknown</option>
+                      </select>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </section>
 
-          <section>
-            <div class="section-header">
-              <h2>Data & Backup</h2>
-              <span class="stat-label">Import/export your session data</span>
-            </div>
-            <div class="inline-controls">
-              <button type="button" id="export-json">Export JSON</button>
-              <label style="margin:0;">
-                Import JSON
-                <input type="file" id="import-json" accept="application/json,.json">
-              </label>
-              <p class="helper-text" style="margin:0;">Exports include all runs in this browser. Imports replace current data.</p>
-            </div>
-          </section>
+            <section class="section-training-log">
+              <h2 class="section-title">Training log</h2>
+              <div class="card training-log-card">
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Week</th>
+                        <th class="hidden-col">Planned (mi)</th>
+                        <th>Distance</th>
+                        <th>Type</th>
+                        <th class="hidden-col">Source</th>
+                        <th class="hidden-col">Status</th>
+                        <th>Avg HR</th>
+                        <th>Effort</th>
+                        <th class="hidden-col">Load</th>
+                        <th class="hidden-col">Temp / Weather</th>
+                        <th class="hidden-col">Time of Day</th>
+                        <th>Time</th>
+                        <th class="hidden-col">Pace (min/mi)</th>
+                        <th class="hidden-col">Result / Notes</th>
+                        <th class="hidden-col">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="run-log"></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
 
-          <section>
-            <div class="section-header">
-              <h2>Training Plan</h2>
-              <span class="stat-label">Upcoming key sessions</span>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Week</th>
-                  <th>Date</th>
-                  <th>Distance (planned)</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody id="plan-body">
-                <tr>
-                  <td colspan="4" style="text-align:center; color: var(--muted);">Add your training sessions here</td>
-                </tr>
-              </tbody>
-            </table>
-            <div class="inline-controls" id="plan-form">
-              <label>
-                Week label
-                <input type="text" id="plan-week" placeholder="Week 1 (Aug 1-7)">
-              </label>
-              <label>
-                Date
-                <input type="text" id="plan-date" placeholder="Sun Aug 17">
-              </label>
-              <label>
-                Distance (planned)
-                <input type="text" id="plan-distance" placeholder="6 mi Zone 2">
-              </label>
-              <label>
-                Notes
-                <input type="text" id="plan-notes" placeholder="Easy aerobic run">
-              </label>
-              <button type="button" id="add-plan">Add Session</button>
-            </div>
-          </section>
+            <section class="section-upload">
+              <div class="card upload-card">
+                <div class="upload-text">Upload runs</div>
+                <form id="plan-upload-form">
+                  <input type="file" id="plan-csv-upload" accept=".csv,text/csv">
+                  <button type="button" class="secondary-button small">Upload file</button>
+                </form>
+                <p class="helper-text">Export your spreadsheet as CSV with columns: Week, Date, Distance, Results (distance, Avg hr, Avg pace), notes.</p>
+                <p class="helper-text" id="plan-upload-message"></p>
+                <div class="file-upload">
+                  <label>
+                    Upload new running data (Excel)
+                    <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+                  </label>
+                  <label>
+                    Upload previous running history (Excel)
+                    <input type="file" id="excel-history-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+                  </label>
+                  <p class="helper-text">Expected columns (case-insensitive): Week (optional), Date, Distance, Results (distance, Average hr, Average pace), Notes. Duration/Type/Effort/HR/Temp are also parsed when present.</p>
+                </div>
+              </div>
+            </section>
 
-          <section>
-            <div class="section-header">
-              <h2>Upload Run Data</h2>
-              <span class="stat-label">Import Excel files to backfill your history</span>
-            </div>
-            <div class="file-upload">
-              <label>
-                Upload new running data (Excel)
-                <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
-              </label>
-              <label>
-                Upload previous running history (Excel)
-                <input type="file" id="excel-history-upload" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
-              </label>
-              <p class="helper-text">Expected columns (case-insensitive): Week (optional), Date, Distance, Results (distance, Average hr, Average pace), Notes. Duration/Type/Effort/HR/Temp are also parsed when present.</p>
-            </div>
-          </section>
-
-          <section>
-            <div class="section-header">
-              <h2>Log a Run</h2>
-              <span class="stat-label">Add completed runs to keep stats fresh</span>
-            </div>
-            <form id="run-form">
-              <label>
-                Date
-                <input type="date" id="run-date" required>
-              </label>
-              <label>
-                Distance (miles)
-                <input type="number" step="0.1" min="0" id="run-distance" required>
-              </label>
-              <label>
-                Type of run
-                <select id="run-type" required>
-                  <option value="" disabled selected>Select type</option>
-                  <option>Zone 2</option>
-                  <option>Zone 3</option>
-                  <option>Threshold</option>
-                  <option>Intervals</option>
-                </select>
-              </label>
-              <label>
-                Average HR
-                <input type="number" min="0" id="run-hr" placeholder="140" required>
-              </label>
-              <label>
-                Effort (1–10)
-                <input type="number" min="1" max="10" id="run-effort" value="5" required>
-              </label>
-              <label>
-                Temperature (°C)
-                <input type="number" step="0.1" id="run-temp" placeholder="18" required>
-              </label>
-              <label>
-                Weather
-                <select id="run-weather">
-                  <option value="">—</option>
-                  <option value="Cool">Cool</option>
-                  <option value="Warm">Warm</option>
-                  <option value="Hot">Hot</option>
-                  <option value="Humid">Humid</option>
-                  <option value="Windy">Windy</option>
-                </select>
-              </label>
-              <label>
-                Time of Day
-                <select id="run-time-of-day">
-                  <option value="Morning" selected>Morning</option>
-                  <option value="Afternoon">Afternoon</option>
-                  <option value="Evening">Evening</option>
-                  <option value="Night">Night</option>
-                  <option value="Unknown">Unknown</option>
-                </select>
-              </label>
-              <label>
-                Duration (hh:mm:ss, optional for pace)
-                <input type="time" step="1" placeholder="00:45:00" id="run-duration">
-              </label>
-              <button type="submit">Add Run</button>
-            </form>
-            <div class="log-table">
+            <section>
+              <div class="section-header">
+                <h2>Training Plan</h2>
+                <span class="stat-label">Upcoming key sessions</span>
+              </div>
               <table>
                 <thead>
                   <tr>
+                    <th>Week</th>
                     <th>Date</th>
-                    <th>Planned (mi)</th>
-                    <th>Completed (mi)</th>
-                    <th>Type</th>
-                    <th>Source</th>
-                    <th>Status</th>
-                    <th>Avg HR</th>
-                    <th>Effort</th>
-                    <th>Load</th>
-                    <th>Temp / Weather</th>
-                    <th>Time of Day</th>
-                    <th>Duration</th>
-                    <th>Pace (min/mi)</th>
-                    <th>Result / Notes</th>
-                    <th>Actions</th>
+                    <th>Distance (planned)</th>
+                    <th>Notes</th>
                   </tr>
                 </thead>
-                <tbody id="run-log"></tbody>
+                <tbody id="plan-body">
+                  <tr>
+                    <td colspan="4" style="text-align:center; color: var(--muted);">Add your training sessions here</td>
+                  </tr>
+                </tbody>
               </table>
-            </div>
-          </section>
+              <div class="inline-controls" id="plan-form" style="display:none;">
+                <label>
+                  Week label
+                  <input type="text" id="plan-week" placeholder="Week 1 (Aug 1-7)">
+                </label>
+                <label>
+                  Date
+                  <input type="text" id="plan-date" placeholder="Sun Aug 17">
+                </label>
+                <label>
+                  Distance (planned)
+                  <input type="text" id="plan-distance" placeholder="6 mi Zone 2">
+                </label>
+                <label>
+                  Notes
+                  <input type="text" id="plan-notes" placeholder="Easy aerobic run">
+                </label>
+                <button type="button" id="add-plan">Add Session</button>
+              </div>
+            </section>
+
+            <section>
+              <div class="section-header">
+                <h2>Data & Backup</h2>
+                <span class="stat-label">Import/export your session data</span>
+              </div>
+              <div class="inline-controls">
+                <button type="button" id="export-json">Export JSON</button>
+                <label style="margin:0;">
+                  Import JSON
+                  <input type="file" id="import-json" accept="application/json,.json">
+                </label>
+                <p class="helper-text" style="margin:0;">Exports include all runs in this browser. Imports replace current data.</p>
+              </div>
+            </section>
+          </main>
         </div>
 
         <div id="charts-section" class="app-section">
