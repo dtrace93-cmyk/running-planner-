@@ -40,8 +40,11 @@ const runForm = document.getElementById('run-form');
     const importJsonInput = document.getElementById('import-json');
     const exportJsonSettingsBtn = document.getElementById('export-json-settings');
     const importJsonSettingsInput = document.getElementById('import-json-settings');
-    const userNotesEl = document.getElementById('user-notes');
     const stravaSummaryEl = document.getElementById('strava-summary');
+    const latestMilesEl = document.getElementById('latest-miles');
+    const latestPaceEl = document.getElementById('latest-pace');
+    const latestTimeEl = document.getElementById('latest-time');
+    const latestHrEl = document.getElementById('latest-hr');
 
     const navItems = document.querySelectorAll('.sidebar-nav-item');
     const appSections = document.querySelectorAll('.app-section');
@@ -73,7 +76,6 @@ const runForm = document.getElementById('run-form');
     });
 
     const STORAGE_KEY = 'runningPlannerDataV1';
-    const NOTES_KEY = 'runningPlannerUserNotes';
 
     let runs = [];
     let runIdCounter = 1;
@@ -122,21 +124,44 @@ const runForm = document.getElementById('run-form');
       return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
 
+    function clearLatestRunCards() {
+      if (latestMilesEl) latestMilesEl.textContent = '--';
+      if (latestPaceEl) latestPaceEl.textContent = '--';
+      if (latestTimeEl) latestTimeEl.textContent = '--';
+      if (latestHrEl) latestHrEl.textContent = '--';
+    }
+
+    function populateLatestRunCards({ distanceMiles, paceString, timeString, hrValue }) {
+      if (latestMilesEl) {
+        latestMilesEl.textContent = Number.isFinite(distanceMiles)
+          ? `${distanceMiles.toFixed(1)} mi`
+          : '--';
+      }
+      if (latestPaceEl) latestPaceEl.textContent = paceString || '--';
+      if (latestTimeEl) latestTimeEl.textContent = timeString || '--';
+      if (latestHrEl) {
+        latestHrEl.textContent = Number.isFinite(hrValue) ? `${Math.round(hrValue)} bpm` : '--';
+      }
+    }
+
     async function fetchLatestStravaRun() {
       if (!stravaSummaryEl) return;
       stravaSummaryEl.textContent = 'Loading latest Strava run…';
       try {
         const response = await fetch(STRAVA_ACTIVITIES_URL);
         if (response.status === 401) {
-          stravaSummaryEl.textContent = 'Strava not connected.';
+          clearLatestRunCards();
+          stravaSummaryEl.textContent = 'Unable to load Strava data.';
           return;
         }
         if (!response.ok) {
+          clearLatestRunCards();
           stravaSummaryEl.textContent = 'Unable to load Strava data.';
           return;
         }
         const data = await response.json();
         if (!Array.isArray(data)) {
+          clearLatestRunCards();
           stravaSummaryEl.textContent = 'Unable to load Strava data.';
           return;
         }
@@ -147,7 +172,8 @@ const runForm = document.getElementById('run-form');
 
         const runsOnly = data.filter(act => (act?.type || '').toLowerCase() === 'run');
         if (runsOnly.length === 0) {
-          stravaSummaryEl.textContent = 'No recent running activities found.';
+          clearLatestRunCards();
+          stravaSummaryEl.textContent = 'Unable to load Strava data.';
           return;
         }
         let latestRun = runsOnly[0];
@@ -162,12 +188,26 @@ const runForm = document.getElementById('run-form');
 
         const miles = milesFromActivity(latestRun);
         const movingSeconds = secondsFromActivity(latestRun);
-        const dateLabel = latestTs ? new Date(latestTs).toLocaleDateString() : 'Unknown date';
-        const milesText = typeof miles === 'number' ? miles.toFixed(2) : 'Unknown distance';
-        const timeText = formatMinutesSeconds(movingSeconds || 0);
-        stravaSummaryEl.textContent = `Last run: ${milesText} miles in ${timeText} on ${dateLabel}`;
+        const paceSeconds = Number.isFinite(latestRun.paceSecondsPerMile)
+          ? latestRun.paceSecondsPerMile
+          : (miles && movingSeconds ? movingSeconds / miles : null);
+        const hrValue = Number.isFinite(latestRun.averageHeartrate) ? latestRun.averageHeartrate : null;
+        const paceString = Number.isFinite(paceSeconds) ? formatPace(paceSeconds) : null;
+        const timeString = formatSecondsToHms(movingSeconds) || formatMinutesSeconds(movingSeconds);
+
+        populateLatestRunCards({
+          distanceMiles: miles,
+          paceString,
+          timeString,
+          hrValue
+        });
+
+        if (stravaSummaryEl) {
+          stravaSummaryEl.textContent = 'Latest run loaded from Strava.';
+        }
       } catch (error) {
         console.error('Failed to load Strava data', error);
+        clearLatestRunCards();
         stravaSummaryEl.textContent = 'Unable to load Strava data.';
       }
     }
@@ -263,23 +303,6 @@ const runForm = document.getElementById('run-form');
 
     function createRunId() {
       return `run-${Date.now()}-${runIdCounter++}`;
-    }
-
-    function loadUserNotes() {
-      if (!userNotesEl) return;
-      const saved = localStorage.getItem(NOTES_KEY);
-      if (saved !== null) {
-        userNotesEl.value = saved;
-      }
-    }
-
-    function saveUserNotes() {
-      if (!userNotesEl) return;
-      try {
-        localStorage.setItem(NOTES_KEY, userNotesEl.value || '');
-      } catch (err) {
-        console.warn('Failed to save notes', err);
-      }
     }
 
     function saveRunsToStorage(data) {
@@ -1484,7 +1507,6 @@ const runForm = document.getElementById('run-form');
     importJsonInput.addEventListener('change', handleJsonImport);
     if (exportJsonSettingsBtn) exportJsonSettingsBtn.addEventListener('click', exportRunsToJson);
     if (importJsonSettingsInput) importJsonSettingsInput.addEventListener('change', handleJsonImport);
-    if (userNotesEl) userNotesEl.addEventListener('input', saveUserNotes);
     document.getElementById('clear-data').addEventListener('click', () => {
       if (confirm('This will remove all loaded runs (from uploads and manual entries) from this session. Are you sure?')) {
         runs = [];
@@ -1553,7 +1575,6 @@ const runForm = document.getElementById('run-form');
 
     async function initPlanner() {
       setActiveSection('dashboard-section');
-      loadUserNotes();
       runs = loadRunsFromStorage();
       refreshUI();
       await syncStravaRunsIntoLog();
