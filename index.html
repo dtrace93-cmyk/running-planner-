@@ -274,6 +274,7 @@
     .card.log-run-card .field-week,
     .card.log-run-card .field-time {
       width: 100% !important;
+      max-width: 100% !important;
       grid-column: auto !important;
     }
 
@@ -289,8 +290,8 @@
     .card.log-run-card .field select,
     .field input,
     .field select {
-      width: 100% !important;
-      max-width: 100% !important;
+      width: 100%;
+      max-width: 100%;
       height: 44px;
       border-radius: 8px;
       box-sizing: border-box;
@@ -557,6 +558,21 @@
       width: max(100%, 800px);
       table-layout: fixed;
       border-collapse: collapse;
+    }
+
+    /* Ensure week and time inputs match all others in the log-run grid */
+    .card.log-run-card .field-week,
+    .card.log-run-card .field-time {
+      grid-column: auto !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .card.log-run-card .field input,
+    .card.log-run-card .field select {
+      width: 100%;
+      height: 44px;
+      box-sizing: border-box;
     }
 
     #run-form {
