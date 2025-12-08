@@ -1153,56 +1153,91 @@ const runForm = document.getElementById('run-form');
     }
 
     function generateInsights(sessions = [], summary = { weeks: [] }, loadMetrics = {}) {
-      const notes = [];
-      const heatRuns = sessions.filter(s => s.riskFlags?.includes('Heat'));
-      if (heatRuns.length >= 2) {
-        notes.push(`You had ${heatRuns.length} heat-affected runs recently; consider earlier start times or indoor options.`);
+      const strengths = [];
+      const improvements = [];
+      const nextSteps = [];
+
+      const paceStats = computePaceTrendStats(sessions);
+      const hrStats = computeHrTrendStats(sessions);
+      const weeklyStats = computeWeeklyDistanceStats(summary.weeks);
+      const longest = sessions.length ? Math.max(...sessions.map(s => (s.completedMiles || s.plannedMiles || 0))) : 0;
+      const missed = summary.missedSessions || 0;
+      const avgEffort = averageNumbers((sessions || []).map(s => s.effort).filter(Boolean));
+      const heatRuns = sessions.filter(s => s.riskFlags?.includes('Heat')).length;
+      const vo2DataAvailable = typeof vo2maxData !== 'undefined' && Array.isArray(vo2maxData) && vo2maxData.some(v => v != null);
+      const enduranceDataAvailable = typeof enduranceData !== 'undefined' && Array.isArray(enduranceData) && enduranceData.some(v => v != null);
+
+      // Strengths
+      if (paceStats.overallText && paceStats.overallText !== '–') {
+        strengths.push(`Pace: steady around ${paceStats.overallText}${paceStats.fastestText ? ` (${paceStats.fastestText})` : ''} with a ${paceStats.label?.toLowerCase() || 'stable'} trend.`);
+      }
+      if (hrStats.label === 'Trending down') {
+        strengths.push('Heart rate: trending lower at similar paces — aerobic efficiency improving.');
+      }
+      if (weeklyStats.avgText && weeklyStats.avgText !== '–') {
+        strengths.push(`Distance: averaging ${weeklyStats.avgText}${longest ? `; longest run ${longest.toFixed(1)} mi` : ''}.`);
+      }
+      if (avgEffort) {
+        strengths.push(`Effort: typical RPE around ${avgEffort.toFixed(0)}, showing consistent pacing control.`);
+      }
+      if (vo2DataAvailable || enduranceDataAvailable) {
+        strengths.push('Progress tracking: Endurance/VO2 Max charts are ready for ongoing trend checks.');
+      }
+      if (!strengths.length) {
+        strengths.push('Building consistency with your logged runs — keep capturing pace, HR, and effort.');
       }
 
-      const morningRuns = sessions.filter(s => (s.timeOfDay || '').toLowerCase().includes('morning') && s.paceSeconds);
-      const eveningRuns = sessions.filter(s => (s.timeOfDay || '').toLowerCase().includes('evening') && s.paceSeconds);
-      if (morningRuns.length >= 3 && eveningRuns.length >= 3) {
-        const morningAvg = averageNumbers(morningRuns.map(r => r.paceSeconds));
-        const eveningAvg = averageNumbers(eveningRuns.map(r => r.paceSeconds));
-        const diff = morningAvg - eveningAvg;
-        const diffSec = Math.abs(Math.round(diff));
-        if (diff <= -10) notes.push(`You perform better in the morning by about ${diffSec} sec/mi on average.`);
-        else if (diff >= 10) notes.push(`You perform better in the evening by about ${diffSec} sec/mi on average.`);
+      // Areas to improve
+      if (hrStats.label === 'Trending up') {
+        improvements.push('Heart rate rising at similar paces — watch fatigue, heat, or hydration.');
       }
-
-      const hrComparable = sessions.filter(s => s.avgHr && s.paceSeconds);
-      const overallPace = averageNumbers(hrComparable.map(s => s.paceSeconds));
-      const similarPace = hrComparable.filter(s => Math.abs(s.paceSeconds - overallPace) <= 30).sort((a, b) => new Date(a.dateValue) - new Date(b.dateValue));
-      if (similarPace.length >= 4) {
-        const [firstHalf, secondHalf] = splitIntoHalves(similarPace.map(s => s.avgHr));
-        const firstAvg = averageNumbers(firstHalf);
-        const secondAvg = averageNumbers(secondHalf);
-        if (firstAvg && secondAvg) {
-          const diff = secondAvg - firstAvg;
-          if (diff <= -5) notes.push(`Your average HR at similar pace has dropped by around ${Math.abs(Math.round(diff))} bpm — likely fitness improving.`);
-          else if (diff >= 5) notes.push(`Your HR at similar pace has risen by around ${Math.round(diff)} bpm — watch fatigue, stress, or heat.`);
-        }
+      if (paceStats.label === 'Getting slower') {
+        improvements.push('Pace trend is slowing; add controlled tempo/threshold work once per week.');
       }
-
-      if (loadMetrics.ratio != null) {
+      if (loadMetrics.ratio != null && loadMetrics.ratio >= 1.3) {
         const percent = Math.round((loadMetrics.ratio - 1) * 100);
-        if (loadMetrics.ratio >= 1.3) notes.push(`Your 7-day load is +${percent}% vs your 4-week baseline — high injury risk. Consider a down week.`);
-        else if (loadMetrics.ratio < 0.8) notes.push('Your recent load is significantly lower than your 4-week baseline — possible undertraining.');
+        improvements.push(`Training load high (+${percent}% vs 4-week baseline); consider backing off to reduce risk.`);
+      }
+      if (loadMetrics.ratio != null && loadMetrics.ratio < 0.8) {
+        improvements.push('Training load is below recent baseline; gradually increase volume to rebuild fitness.');
+      }
+      if (missed > 0) {
+        improvements.push(`Consistency: ${missed} missed sessions logged — aim to protect recovery runs.`);
+      }
+      if (!vo2DataAvailable) {
+        improvements.push('VO2 Max tracking is empty — add intervals or upload data to monitor aerobic ceiling.');
+      }
+      if (heatRuns >= 2) {
+        improvements.push(`Heat/humidity impacted ${heatRuns} runs — adjust time of day or hydration.`);
+      }
+      if (!improvements.length) {
+        improvements.push('Maintain consistency and monitor effort/HR to catch early fatigue signs.');
       }
 
-      const longRuns = sessions.filter(s => (s.type || '').toLowerCase().includes('long'));
-      const easyRuns = sessions.filter(s => ['recovery', 'easy'].includes((s.type || '').toLowerCase()) && s.paceSeconds);
-      const easyPace = averageNumbers(easyRuns.map(r => r.paceSeconds));
-      if (longRuns.length) {
-        const hardLongs = longRuns.filter(r => /tired|hard/.test((r.resultText || '').toLowerCase()) || (r.riskFlags || []).some(flag => ['Fatigue', 'Injury'].includes(flag)));
-        if (hardLongs.length >= Math.ceil(longRuns.length / 2)) {
-          notes.push('Your long runs are consistently feeling hard; review fueling, pacing, and sleep.');
-        } else if (easyPace && averageNumbers(longRuns.filter(r => r.paceSeconds).map(r => r.paceSeconds)) <= easyPace * 1.1) {
-          notes.push('Your long runs look consistent and controlled — good sign for marathon prep.');
+      // Next steps
+      if (loadMetrics.ratio != null) {
+        if (loadMetrics.ratio >= 1.3) {
+          nextSteps.push('Plan a down week (trim volume or intensity) to let training load settle.');
+        } else if (loadMetrics.ratio < 0.8) {
+          nextSteps.push('Increase weekly distance by ~10% with one longer easy run to rebuild endurance.');
         }
       }
+      nextSteps.push('Add one threshold/interval session weekly to lift VO2 Max and pace efficiency.');
+      if (weeklyStats.avgText && weeklyStats.avgText !== '–') {
+        nextSteps.push(`Keep weekly volume near ${weeklyStats.avgText} and avoid >25% jumps week over week.`);
+      }
+      if (longest) {
+        nextSteps.push(`Long run: hold easy effort and extend toward ${Math.min(longest + 1, longest * 1.1).toFixed(1)} mi when recovered.`);
+      }
+      if (!nextSteps.length) {
+        nextSteps.push('Log a few more runs to unlock tailored next steps.');
+      }
 
-      return notes;
+      return [
+        `Strengths: ${strengths.join(' · ')}`,
+        `Areas to improve: ${improvements.join(' · ')}`,
+        `Next steps: ${nextSteps.join(' · ')}`
+      ];
     }
 
     function createProgressCharts() {
