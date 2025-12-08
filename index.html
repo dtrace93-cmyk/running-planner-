@@ -845,17 +845,15 @@
     <form id="run-form">
       <div class="field-grid">
         <!-- Week: now a simple number input so it matches other fields -->
-        <div class="field">
-          <label for="run-date">Week</label>
-          <input
-            type="number"
-            id="run-date"
-            min="1"
-            max="52"
-            placeholder="1"
-            required
-          >
-        </div>
+       <div class="field">
+        <label for="run-duration">Time (hh:mm)</label>
+        <input
+          type="text"
+          id="run-duration"
+          placeholder="00:45"
+          required
+        >
+      </div>
 
         <div class="field">
           <label for="run-distance">Distance (mi)</label>
@@ -884,15 +882,15 @@
         </div>
 
         <!-- Time: now a normal text field so it can style identically -->
-        <div class="field">
-          <label for="run-duration">Time (hh:mm)</label>
-          <input
-            type="text"
-            id="run-duration"
-            placeholder="00:45"
-            required
-          >
-        </div>
+             <div class="field">
+        <label for="run-duration">Time (hh:mm)</label>
+        <input
+          type="text"
+          id="run-duration"
+          placeholder="00:45"
+          required
+        >
+      </div>
 
         <div class="field">
           <label for="run-temp">Temperature (°C)</label>
