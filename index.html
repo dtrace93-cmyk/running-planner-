@@ -257,7 +257,27 @@
       width: 100%;
     }
 
-    .field label,
+    .card.log-run-card {
+      background: var(--panel);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 12px;
+    }
+
+    .card.log-run-card .field {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      grid-column: auto !important;
+    }
+
+    .card.log-run-card .field-week,
+    .card.log-run-card .field-time {
+      width: 100% !important;
+      grid-column: auto !important;
+    }
+
+    .card.log-run-card .field label,
     .label {
       display: block;
       font-size: 0.75rem;
@@ -265,18 +285,16 @@
       margin-bottom: 4px;
     }
 
+    .card.log-run-card .field input,
+    .card.log-run-card .field select,
     .field input,
     .field select {
       width: 100% !important;
+      max-width: 100% !important;
       height: 44px;
       border-radius: 8px;
       box-sizing: border-box;
-    }
-
-    .log-run-card input,
-    .log-run-card select {
-      max-width: 100% !important;
-      flex: 1 1 auto !important;
+      flex: 0 0 auto;
     }
 
     .table-wrapper {
@@ -838,16 +856,16 @@
               <div class="card log-run-card">
                 <form id="run-form">
                   <div class="field-grid">
-                    <div class="field">
-                      <label>Week</label>
+                    <div class="field field-week">
+                      <label for="run-date">Week</label>
                       <input type="date" id="run-date" required>
                     </div>
-                    <div class="field">
-                      <label>Distance (mi)</label>
+                    <div class="field field-distance">
+                      <label for="run-distance">Distance (mi)</label>
                       <input type="number" step="0.1" min="0" id="run-distance" required>
                     </div>
-                    <div class="field">
-                      <label>Type</label>
+                    <div class="field field-type">
+                      <label for="run-type">Type</label>
                       <select id="run-type" required>
                         <option value="" disabled selected>Select type</option>
                         <option>Zone 2</option>
@@ -856,24 +874,24 @@
                         <option>Intervals</option>
                       </select>
                     </div>
-                    <div class="field">
-                      <label>Effort</label>
+                    <div class="field field-effort">
+                      <label for="run-effort">Effort</label>
                       <input type="number" min="1" max="10" id="run-effort" value="5" required>
                     </div>
-                    <div class="field">
-                      <label>Avg HR</label>
+                    <div class="field field-avghr">
+                      <label for="run-hr">Avg HR</label>
                       <input type="number" min="0" id="run-hr" placeholder="140" required>
                     </div>
-                    <div class="field">
-                      <label>Time (hh:mm)</label>
+                    <div class="field field-time">
+                      <label for="run-duration">Time (hh:mm)</label>
                       <input type="time" step="1" placeholder="00:45:00" id="run-duration">
                     </div>
-                    <div class="field">
-                      <label>Temperature (°C)</label>
+                    <div class="field field-temp">
+                      <label for="run-temp">Temperature (°C)</label>
                       <input type="number" step="0.1" id="run-temp" placeholder="18" required>
                     </div>
-                    <div class="field">
-                      <label>Weather</label>
+                    <div class="field field-weather">
+                      <label for="run-weather">Weather</label>
                       <select id="run-weather">
                         <option value="">—</option>
                         <option value="Cool">Cool</option>
@@ -883,8 +901,8 @@
                         <option value="Windy">Windy</option>
                       </select>
                     </div>
-                    <div class="field">
-                      <label>Time of Day</label>
+                    <div class="field field-tod">
+                      <label for="run-time-of-day">Time of Day</label>
                       <select id="run-time-of-day">
                         <option value="Morning" selected>Morning</option>
                         <option value="Afternoon">Afternoon</option>
