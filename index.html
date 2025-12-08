@@ -656,7 +656,7 @@
       <ul class="sidebar-nav">
         <li><a href="#dashboard-section">Dashboard</a></li>
         <li><a href="#plan-section">Training</a></li>
-        <li><a href="#charts-section">Charts</a></li>
+        <li><a href="#charts-section">Progress</a></li>
         <li><a href="#notes-section">Notes</a></li>
         <li><a href="#settings-section">Settings</a></li>
         <li><a href="RP16.html">Strava Sync</a></li>
@@ -674,7 +674,7 @@
       <nav class="tab-nav nav-links">
         <a class="nav-item sidebar-nav-item" data-section="dashboard-section" href="#dashboard-section">Dashboard</a>
         <a class="nav-item sidebar-nav-item" data-section="plan-section" href="#plan-section">Training</a>
-        <a class="nav-item sidebar-nav-item" data-section="charts-section" href="#charts-section">Charts</a>
+        <a class="nav-item sidebar-nav-item" data-section="charts-section" href="#charts-section">Progress</a>
         <a class="nav-item sidebar-nav-item" data-section="notes-section" href="#notes-section">Notes</a>
         <a class="nav-item sidebar-nav-item" data-section="settings-section" href="#settings-section">Settings</a>
         <a class="nav-item" href="RP16.html">Strava Sync</a>
@@ -993,13 +993,25 @@
         </div>
 
         <div id="charts-section" class="app-section">
+          <!-- Endurance chart -->
           <section>
             <div class="section-header">
-              <h2>Progress</h2>
-              <span class="stat-label">Pace and distance over time</span>
+              <h2>Endurance</h2>
+              <span class="stat-label">Endurance score over the last 12 months</span>
             </div>
             <div class="chart-wrapper">
-              <canvas id="progressChart"></canvas>
+              <canvas id="enduranceChart"></canvas>
+            </div>
+          </section>
+
+          <!-- VO2 Max chart -->
+          <section>
+            <div class="section-header">
+              <h2>VO2 Max</h2>
+              <span class="stat-label">VO2 Max score over the last 12 months</span>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="vo2maxChart"></canvas>
             </div>
           </section>
         </div>
