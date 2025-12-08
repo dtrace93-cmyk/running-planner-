@@ -195,6 +195,16 @@ const runForm = document.getElementById('run-form');
         const paceString = Number.isFinite(paceSeconds) ? formatPace(paceSeconds) : null;
         const timeString = formatSecondsToHms(movingSeconds) || formatMinutesSeconds(movingSeconds);
 
+        const dateValue = latestRun.start_date_local
+          || latestRun.startDateLocal
+          || latestRun.start_date
+          || latestRun.startDate
+          || '';
+        const date = dateValue ? new Date(dateValue) : null;
+        const dateString = date && !Number.isNaN(date.getTime())
+          ? date.toLocaleDateString(undefined, { day: 'numeric', month: 'numeric', year: 'numeric' })
+          : 'Unknown date';
+
         populateLatestRunCards({
           distanceMiles: miles,
           paceString,
@@ -203,7 +213,9 @@ const runForm = document.getElementById('run-form');
         });
 
         if (stravaSummaryEl) {
-          stravaSummaryEl.textContent = 'Latest run loaded from Strava.';
+          const milesText = Number.isFinite(miles) ? miles.toFixed(2) : '--';
+          const timeText = timeString || '--';
+          stravaSummaryEl.textContent = `Last run: ${milesText} miles in ${timeText} on ${dateString}`;
         }
       } catch (error) {
         console.error('Failed to load Strava data', error);
