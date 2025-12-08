@@ -77,7 +77,14 @@ const runForm = document.getElementById('run-form');
 
     let runs = [];
     let runIdCounter = 1;
-    let chart;
+    let enduranceChart;
+    let vo2maxChart;
+
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let enduranceData = [null, null, null, null, null, null, null, null, null, null, null, null];
+    let vo2maxData = [null, null, null, null, null, null, null, null, null, null, null, null];
+    window.enduranceData = enduranceData;
+    window.vo2maxData = vo2maxData;
 
     function getActivityTimestamp(activity) {
       const candidates = [activity.startDate, activity.start_date, activity.startDateLocal, activity.start_date_local, activity.startDateUTC, activity.start_date_utc];
@@ -1198,114 +1205,66 @@ const runForm = document.getElementById('run-form');
       return notes;
     }
 
-    function buildChart() {
-      const ctx = document.getElementById('progressChart');
-      const planEntries = runs.filter(r => r.source === 'plan');
-      const hasPlan = planEntries.length > 0;
-      let labels = [];
-      let datasets = [];
+    function createProgressCharts() {
+      const enduranceCtx = document.getElementById('enduranceChart');
+      const vo2Ctx = document.getElementById('vo2maxChart');
 
-      if (hasPlan) {
-        labels = planEntries.map(p => p.date || '');
-        const plannedData = planEntries.map(p => p.plannedMiles ?? null);
-        const completedData = planEntries.map(p => p.completedMiles ?? null);
-        datasets = [
-          {
-            label: 'Planned Distance (mi)',
-            data: plannedData,
-            borderColor: varColor('--accent'),
-            backgroundColor: 'rgba(76, 194, 255, 0.15)',
-            tension: 0.3,
-            spanGaps: true
-          },
-          {
-            label: 'Completed Distance (mi)',
-            data: completedData,
-            borderColor: varColor('--accent-2'),
-            backgroundColor: 'rgba(120, 245, 197, 0.15)',
-            tension: 0.3,
-            spanGaps: true
-          }
-        ];
-      } else {
-        const sorted = [...runs].sort((a, b) => new Date(a.date) - new Date(b.date));
-        labels = sorted.map(r => r.date);
-        const paceData = sorted.map(r => r.paceSeconds ? Number((r.paceSeconds / 60).toFixed(2)) : null);
-        const distanceData = sorted.map(r => Number(r.distance.toFixed(2)));
-        datasets = [
-          {
-            label: 'Pace (min/mi)',
-            data: paceData,
-            borderColor: varColor('--accent'),
-            backgroundColor: 'rgba(76, 194, 255, 0.15)',
-            tension: 0.3,
-            yAxisID: 'y'
-          },
-          {
-            label: 'Distance (mi)',
-            data: distanceData,
-            borderColor: varColor('--accent-2'),
-            backgroundColor: 'rgba(120, 245, 197, 0.15)',
-            tension: 0.3,
-            yAxisID: 'y1'
-          }
-        ];
-      }
+      if (enduranceChart) { enduranceChart.destroy(); enduranceChart = null; }
+      if (vo2maxChart) { vo2maxChart.destroy(); vo2maxChart = null; }
 
-      if (chart) chart.destroy();
-      if (!labels.length) return;
-
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { labels: { color: '#dbe3ef' } },
-            tooltip: {
-              callbacks: {
-                label(context) {
-                  if (context.dataset.label.includes('Pace')) {
-                    const raw = context.raw;
-                    if (raw === null || raw === undefined) return `${context.dataset.label}: –`;
-                    return `${context.dataset.label}: ${formatPace(Number(raw) * 60)}`;
-                  }
-                  return `${context.dataset.label}: ${Number(context.raw).toFixed(1)} mi`;
-                }
-              }
-            }
+      if (enduranceCtx) {
+        enduranceChart = new Chart(enduranceCtx, {
+          type: 'line',
+          data: {
+            labels: monthLabels,
+            datasets: [{
+              label: 'Endurance score',
+              data: enduranceData,
+              tension: 0.3
+            }]
           },
-          scales: (() => {
-            const base = {
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
               x: {
-                ticks: { color: '#dbe3ef' },
-                grid: { color: 'rgba(255,255,255,0.05)' }
+                title: { display: true, text: 'Month' }
               },
               y: {
-                type: 'linear',
-                position: 'left',
-                ticks: { color: '#dbe3ef' },
-                grid: { color: 'rgba(255,255,255,0.05)' }
+                title: { display: true, text: 'Endurance score' },
+                beginAtZero: true
               }
-            };
-            if (!hasPlan) {
-              base.y1 = {
-                type: 'linear',
-                position: 'right',
-                ticks: { color: '#dbe3ef' },
-                grid: { drawOnChartArea: false },
-                suggestedMin: 0
-              };
             }
-            return base;
-          })()
-        }
-      });
-    }
+          }
+        });
+      }
 
-    function varColor(name) {
-      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      if (vo2Ctx) {
+        vo2maxChart = new Chart(vo2Ctx, {
+          type: 'line',
+          data: {
+            labels: monthLabels,
+            datasets: [{
+              label: 'VO2 Max',
+              data: vo2maxData,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                title: { display: true, text: 'Month' }
+              },
+              y: {
+                title: { display: true, text: 'VO2 Max score' },
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
     }
 
     runForm.addEventListener('submit', event => {
@@ -1494,7 +1453,8 @@ const runForm = document.getElementById('run-form');
     document.getElementById('clear-data').addEventListener('click', () => {
       if (confirm('This will remove all loaded runs (from uploads and manual entries) from this session. Are you sure?')) {
         runs = [];
-        if (chart) { chart.destroy(); chart = null; }
+        if (enduranceChart) { enduranceChart.destroy(); enduranceChart = null; }
+        if (vo2maxChart) { vo2maxChart.destroy(); vo2maxChart = null; }
         try { localStorage.removeItem(STORAGE_KEY); } catch (err) { console.warn('Failed clearing storage', err); }
         refreshUI();
         setPlanMessage('', false);
@@ -1551,7 +1511,7 @@ const runForm = document.getElementById('run-form');
       saveRunsToStorage(runs);
       renderRuns();
       updateStats();
-      buildChart();
+      createProgressCharts();
       renderPlan();
       renderWeeklySummary();
     }
