@@ -245,18 +245,6 @@
       padding: 12px;
     }
 
-    .field-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-    }
-
     .card.log-run-card {
       background: var(--panel);
       border-radius: 12px;
@@ -264,18 +252,16 @@
       padding: 12px;
     }
 
+    .card.log-run-card .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
     .card.log-run-card .field {
       display: flex;
       flex-direction: column;
       width: 100%;
-      grid-column: auto !important;
-    }
-
-    .card.log-run-card .field-week,
-    .card.log-run-card .field-time {
-      width: 100% !important;
-      max-width: 100% !important;
-      grid-column: auto !important;
     }
 
     .card.log-run-card .field label,
@@ -290,8 +276,8 @@
     .card.log-run-card .field select,
     .field input,
     .field select {
-      width: 100%;
-      max-width: 100%;
+      width: 100% !important;
+      max-width: 100% !important;
       height: 44px;
       border-radius: 8px;
       box-sizing: border-box;
@@ -560,21 +546,6 @@
       border-collapse: collapse;
     }
 
-    /* Ensure week and time inputs match all others in the log-run grid */
-    .card.log-run-card .field-week,
-    .card.log-run-card .field-time {
-      grid-column: auto !important;
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-
-    .card.log-run-card .field input,
-    .card.log-run-card .field select {
-      width: 100%;
-      height: 44px;
-      box-sizing: border-box;
-    }
-
     #run-form {
       display: block;
     }
@@ -667,6 +638,7 @@
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
+      .card.log-run-card .field-grid,
       .field-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
@@ -872,15 +844,15 @@
               <div class="card log-run-card">
                 <form id="run-form">
                   <div class="field-grid">
-                    <div class="field field-week">
+                    <div class="field">
                       <label for="run-date">Week</label>
                       <input type="date" id="run-date" required>
                     </div>
-                    <div class="field field-distance">
+                    <div class="field">
                       <label for="run-distance">Distance (mi)</label>
                       <input type="number" step="0.1" min="0" id="run-distance" required>
                     </div>
-                    <div class="field field-type">
+                    <div class="field">
                       <label for="run-type">Type</label>
                       <select id="run-type" required>
                         <option value="" disabled selected>Select type</option>
@@ -890,23 +862,23 @@
                         <option>Intervals</option>
                       </select>
                     </div>
-                    <div class="field field-effort">
+                    <div class="field">
                       <label for="run-effort">Effort</label>
                       <input type="number" min="1" max="10" id="run-effort" value="5" required>
                     </div>
-                    <div class="field field-avghr">
+                    <div class="field">
                       <label for="run-hr">Avg HR</label>
                       <input type="number" min="0" id="run-hr" placeholder="140" required>
                     </div>
-                    <div class="field field-time">
+                    <div class="field">
                       <label for="run-duration">Time (hh:mm)</label>
                       <input type="time" step="1" placeholder="00:45:00" id="run-duration">
                     </div>
-                    <div class="field field-temp">
+                    <div class="field">
                       <label for="run-temp">Temperature (°C)</label>
                       <input type="number" step="0.1" id="run-temp" placeholder="18" required>
                     </div>
-                    <div class="field field-weather">
+                    <div class="field">
                       <label for="run-weather">Weather</label>
                       <select id="run-weather">
                         <option value="">—</option>
@@ -917,7 +889,7 @@
                         <option value="Windy">Windy</option>
                       </select>
                     </div>
-                    <div class="field field-tod">
+                    <div class="field">
                       <label for="run-time-of-day">Time of Day</label>
                       <select id="run-time-of-day">
                         <option value="Morning" selected>Morning</option>
