@@ -82,4 +82,221 @@
     }
     .actions {
       display: flex;
-      gap:
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .back-link {
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #0c111b;
+      font-weight: 600;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .back-link:hover {
+      background: #111724;
+      border-color: #2a3240;
+    }
+    .status {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #1a202d;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--muted);
+    }
+    pre {
+      background: #0c0f14;
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 10px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
+    ul.activity-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 12px;
+    }
+    .activity-item {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #121722;
+    }
+    .activity-item h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+    .activity-meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+      line-height: 1.5;
+    }
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      main {
+        margin-top: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Running Planner – Strava Sync</h1>
+    <div class="actions">
+      <a class="back-link" href="index.html">Back to Planner</a>
+      <button id="connect-strava">Connect Strava</button>
+      <div id="status" class="status">Waiting to connect…</div>
+    </div>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Synced Strava Activities</h2>
+      <p class="muted">Connect to import your latest Strava activities from the API.</p>
+      <div id="activities" class="muted">No activities loaded yet.</div>
+    </section>
+  </main>
+  <script>
+    // --- UPDATED FIREBASE PRODUCTION URLS ---
+    // This points to your deployed Cloud Function 'api'
+    const BASE_API = "https://us-central1-running-planner-c2f1c.cloudfunctions.net/api";
+    
+    const STRAVA_AUTH_URL = `${BASE_API}/auth/strava`;
+    // Note the double '/api/api' because your express route is defined as /api/strava/activities
+    const STRAVA_ACTIVITIES_URL = `${BASE_API}/api/strava/activities`;
+
+    const statusEl = document.getElementById("status");
+    const activitiesEl = document.getElementById("activities");
+    const connectBtn = document.getElementById("connect-strava");
+
+    function setStatus(message, variant = "info") {
+      statusEl.textContent = message;
+      statusEl.style.color = variant === "error" ? "var(--danger)" : "var(--muted)";
+    }
+
+    function setButtonLabel(label) {
+      connectBtn.textContent = label;
+    }
+
+    function formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.round(seconds % 60);
+      return `${mins}m ${secs}s`;
+    }
+
+    function renderActivities(data) {
+      if (!Array.isArray(data) || data.length === 0) {
+        activitiesEl.textContent = "No activities found from Strava.";
+        activitiesEl.className = "muted";
+        return;
+      }
+
+      const list = document.createElement("ul");
+      list.className = "activity-list";
+
+      data.forEach((activity) => {
+        const li = document.createElement("li");
+        li.className = "activity-item";
+
+        const title = document.createElement("h3");
+        title.textContent = activity.name || "Untitled activity";
+
+        const distanceLine = typeof activity.distanceMiles === "number"
+          ? `Distance: ${activity.distanceMiles.toFixed(2)} miles`
+          : "Distance: —";
+        const timeLine = typeof activity.movingTimeSec === "number"
+          ? `Time: ${formatDuration(activity.movingTimeSec)}`
+          : "Time: —";
+        const dateLine = activity.startDate
+          ? `Date: ${new Date(activity.startDate).toLocaleDateString()}`
+          : "Date: —";
+
+        const meta = document.createElement("p");
+        meta.className = "activity-meta";
+        meta.textContent = `${distanceLine} • ${timeLine} • ${dateLine}`;
+        li.appendChild(title);
+        li.appendChild(meta);
+
+        const extras = [];
+        if (activity.type) extras.push(activity.type);
+        if (typeof activity.paceSecondsPerMile === "number") {
+          extras.push(`Pace: ${activity.paceSecondsPerMile}s/mi`);
+        }
+        if (typeof activity.averageHeartrate === "number") {
+          extras.push(`HR: ${activity.averageHeartrate} bpm`);
+        }
+
+        if (extras.length) {
+          const extraLine = document.createElement("p");
+          extraLine.className = "activity-meta";
+          extraLine.textContent = extras.join(" • ");
+          li.appendChild(extraLine);
+        }
+
+        list.appendChild(li);
+      });
+
+      activitiesEl.innerHTML = "";
+      activitiesEl.appendChild(list);
+    }
+
+    async function fetchActivities() {
+      // initial page load flow: attempt to load activities immediately
+      setStatus("Fetching activities from Strava…");
+      try {
+        const response = await fetch(STRAVA_ACTIVITIES_URL);
+
+        if (response.status === 401) {
+          setStatus("Not connected to Strava.");
+          setButtonLabel("Connect Strava");
+          activitiesEl.textContent = "No activities loaded yet.";
+          activitiesEl.className = "muted";
+          return;
+        }
+
+        if (!response.ok) {
+          setStatus("Unable to load Strava activities. Please try again.", "error");
+          console.error("Error loading Strava activities:", response.status, response.statusText);
+          activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
+          activitiesEl.className = "muted";
+          return;
+        }
+
+        const data = await response.json();
+        console.log("Strava activities:", Array.isArray(data) ? data.length : 0, Array.isArray(data) && data[0]);
+        renderActivities(data);
+        setStatus("Activities loaded from Strava.");
+        setButtonLabel("Reconnect Strava");
+      } catch (error) {
+        console.error("Failed to load Strava activities", error);
+        setStatus("Unable to load Strava activities. Please try again.", "error");
+        activitiesEl.textContent = "Unable to load Strava activities. Please try again.";
+        activitiesEl.className = "muted";
+      }
+    }
+
+    connectBtn.addEventListener("click", () => {
+      window.location.href = STRAVA_AUTH_URL;
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchActivities();
+    });
+  </script>
+</body>
+</html>
