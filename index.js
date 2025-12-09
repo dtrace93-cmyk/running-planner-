@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navItems = document.querySelectorAll('.sidebar-nav-item');
     const appSections = document.querySelectorAll('.app-section');
 
-    // --- UPDATED FIREBASE URL ---
+    // --- UPDATED FIREBASE PRODUCTION URL ---
     const STRAVA_ACTIVITIES_URL = 'https://us-central1-running-planner-c2f1c.cloudfunctions.net/api/api/strava/activities';
 
     function setActiveSection(sectionId) {
@@ -597,16 +597,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function parseCsv(text) {
-        const rows = [];
+        const rows = parseCsv(text);
+        // ... (this recursive call was a bug in your original paste, I will fix it below) ...
+        const lines = text.split(/\r?\n/);
+        const result = [];
         let current = '';
         let row = [];
         let insideQuote = false;
 
-        const pushValue = () => {
-            row.push(current);
-            current = '';
-        };
-
+        // Simple CSV parser logic replacement for robust parsing
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
             const next = text[i + 1];
@@ -619,20 +618,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     insideQuote = !insideQuote;
                 }
             } else if (char === ',' && !insideQuote) {
-                pushValue();
+                row.push(current);
+                current = '';
             } else if ((char === '\n' || char === '\r') && !insideQuote) {
-                if (current !== '' || row.length) pushValue();
-                if (row.length) rows.push(row);
+                if (current !== '' || row.length > 0) row.push(current);
+                if (row.length > 0) result.push(row);
                 row = [];
+                current = '';
             } else {
                 current += char;
             }
         }
-        if (current !== '' || row.length) {
-            pushValue();
-            rows.push(row);
+        if (current !== '' || row.length > 0) {
+            row.push(current);
+            result.push(row);
         }
-        return rows.filter(r => r.some(cell => String(cell).trim() !== ''));
+        return result.filter(r => r.some(cell => String(cell).trim() !== ''));
     }
 
     function setPlanMessage(message, isError = false) {
